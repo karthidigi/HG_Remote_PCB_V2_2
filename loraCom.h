@@ -6,8 +6,9 @@ SX126x LoRa;
 
 // Message to transmit
 char TxMessage[] = "#BIGFISH";
-uint8_t nBytes = sizeof(TxMessage);
 uint8_t MotStaValue = 0;
+
+uint8_t staRxMsg = 0;
 
 void loraInit() {
   //Serial.println("Begin LoRa radio");
@@ -81,14 +82,13 @@ void loraInit() {
 }
 
 
-void loraTxFunc(String msg, int MotStaValue) {
+void loraTxFunc(char* msg, int MotStaValue) {
   // Transmit message and counter
   // write() method must be placed between beginPacket() and endPacket()
-  char TxBuffer[20];
-  snprintf(TxBuffer, sizeof(TxBuffer), "%c %d", msg, MotStaValue);
-  nBytes = sizeof(TxMessage);
+  //uint8_t nBytes = strlen(msg);
+  size_t nBytes = strlen(msg);
   LoRa.beginPacket();
-  LoRa.write(TxBuffer, nBytes);
+  LoRa.write(msg, nBytes);
   LoRa.write(MotStaValue);
   LoRa.endPacket();
 
@@ -106,6 +106,63 @@ void loraTxFunc(String msg, int MotStaValue) {
   //  //Serial.println(" ms");
   //  //Serial.println();
   //// Don't load RF module with continous transmit
+}
+
+
+
+void loraRxFunc() {
+
+  // Request for receiving new LoRa packet
+  //LoRa.request();
+  // Wait for incoming LoRa packet
+  //LoRa.wait();
+
+  uint32_t rxPeriod = 100;
+  uint32_t sleepPeriod = 5;
+  LoRa.listen(rxPeriod, sleepPeriod);
+
+  // Put received packet to message and counter variable
+  // read() and available() method must be called after request() or listen() method
+  const uint8_t msgLen = LoRa.available() - 1;
+  char message[msgLen];
+  uint8_t counter;
+  // available() method return remaining received payload length and will decrement each read() or get() method called
+  uint8_t i = 0;
+  while (LoRa.available() > 1) {
+    message[i++] = LoRa.read();
+  }
+  staRxMsg = LoRa.read();
+
+  // Print received message and counter in //Serial
+  //Serial.print(message);
+  //Serial.print("  ");
+  //Serial.println(staRxMsg);
+  String strMessage = String(message);
+  if (!strMessage.indexOf("ACK_M1") && staRxMsg == 1) {
+    //Serial.println(" MOTOR 1 ON - LORA ");
+    funcLedReset();
+    funcM1LGreen();
+    buzBeep(500);
+  }
+  if (!strMessage.indexOf("ACK_M1") && staRxMsg == 0) {
+    //Serial.println(" MOTOR 1 OFF - LORA ");
+    funcLedReset();
+    funcM1LRed();
+    buzBeep(500);
+  }
+
+  // Print packet/signal status including package RSSI and SNR
+  //Serial.print("Packet status: RSSI = ");
+  //Serial.print(LoRa.packetRssi());
+  //Serial.print(" dBm | SNR = ");
+  //Serial.print(LoRa.snr());
+  //Serial.println(" dB");
+
+  // Show received status in case CRC or header error occur
+  //  uint8_t status = LoRa.status();
+  //  if (status == SX126X_STATUS_CRC_ERR) //Serial.println("CRC error");
+  //  else if (status == SX126X_STATUS_HEADER_ERR) //Serial.println("Packet header error");
+  //Serial.println();
 }
 
 void loraStbTx() {

@@ -34,26 +34,31 @@ void hwbuttonPin() {
             funcM1LGreen();
             loraTxFunc("M1",1);
             buzBeep(200); 
+            funcLedReset();
             break;
             case 1:
             funcM1LRed();
             loraTxFunc("M1",0);
             buzBeep(200);
+            funcLedReset();
             break;
             case 2: 
             funcM2LGreen();
-            loraTxFunc("M2",0);
+            loraTxFunc("M2",1);
             buzBeep(200);
+            funcLedReset();
             break;
             case 3: 
             funcM2LRed();
             loraTxFunc("M2",0);
             buzBeep(200);
+            funcLedReset();
             break;
             case 4: 
             funcStaLBlue();
             loraTxFunc("STB", 1);
             buzBeep(200);
+            funcLedReset();
             break;
           }
         }
