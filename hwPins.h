@@ -34,7 +34,7 @@ void hwPinInit() {
 
   pinMode(M1_ON_BTN, INPUT_PULLUP);
   pinMode(M1_OFF_BTN, INPUT_PULLUP);
-  pinMode(M2_ON_BTN, INPUT_PULLUP);
+  //pinMode(M2_ON_BTN, INPUT_PULLUP);
   pinMode(M2_OFF_BTN, INPUT_PULLUP);
   pinMode(STA_BTN, INPUT_PULLUP);
 

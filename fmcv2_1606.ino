@@ -1,21 +1,19 @@
 #include "hwPins.h"
 #include "led.h"
 #include "buz.h"
-#include "loraCom.h"
+#include "aesMain.h"
+#include "llcc68Main.h"
 #include "button.h"
 
 void setup() {
-
+  Serial.begin(115200);
   hwPinInit();
   funcLedTest();
   buzBeep(300);
-  loraInit();
-
+  llcc68_init();
 }
 
 void loop() {
   hwbuttonPin();
-  //loraStbTx();
-  //buzStbAlert();
-  loraRxFunc();
+  llcc68_func();
 }

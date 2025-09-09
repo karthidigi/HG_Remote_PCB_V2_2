@@ -13,7 +13,7 @@ void buzStbAlert(){
   if (now - lastUpdate >= 60000) {
     lastUpdate = now;
     funcLedReset();
-    buzBeep(200);
+    buzBeep(500);
     delay(200);
     buzBeep(200);
   }
