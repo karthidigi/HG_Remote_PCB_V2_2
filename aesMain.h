@@ -1,140 +1,268 @@
 #include "src/aes.h"
-#include <string.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <time.h>
-// Buffer and key sizes
+#include "debug.h"
+
 #define MAX_MESSAGE_LEN 32
-#define KEY_LEN 16     // 128-bit key (16 bytes)
-#define BLOCK_SIZE 16  // 128-bit block (16 bytes)
+#define KEY_LEN 16
+#define BLOCK_SIZE 16
 
-// 32 fixed, unique 16-byte nonces for AES-CTR mode
-const uint8_t nonces[32][BLOCK_SIZE] = {
-    {0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0A,0x0B,0x0C,0x0D,0x0E,0x0F,0x10},
-    {0x11,0x12,0x13,0x14,0x15,0x16,0x17,0x18,0x19,0x1A,0x1B,0x1C,0x1D,0x1E,0x1F,0x20},
-    {0x21,0x22,0x23,0x24,0x25,0x26,0x27,0x28,0x29,0x2A,0x2B,0x2C,0x2D,0x2E,0x2F,0x30},
-    {0x31,0x32,0x33,0x34,0x35,0x36,0x37,0x38,0x39,0x3A,0x3B,0x3C,0x3D,0x3E,0x3F,0x40},
-    {0x41,0x42,0x43,0x44,0x45,0x46,0x47,0x48,0x49,0x4A,0x4B,0x4C,0x4D,0x4E,0x4F,0x50},
-    {0x51,0x52,0x53,0x54,0x55,0x56,0x57,0x58,0x59,0x5A,0x5B,0x5C,0x5D,0x5E,0x5F,0x60},
-    {0x61,0x62,0x63,0x64,0x65,0x66,0x67,0x68,0x69,0x6A,0x6B,0x6C,0x6D,0x6E,0x6F,0x70},
-    {0x71,0x72,0x73,0x74,0x75,0x76,0x77,0x78,0x79,0x7A,0x7B,0x7C,0x7D,0x7E,0x7F,0x80},
-    {0x81,0x82,0x83,0x84,0x85,0x86,0x87,0x88,0x89,0x8A,0x8B,0x8C,0x8D,0x8E,0x8F,0x90},
-    {0x91,0x92,0x93,0x94,0x95,0x96,0x97,0x98,0x99,0x9A,0x9B,0x9C,0x9D,0x9E,0x9F,0xA0},
-    {0xA1,0xA2,0xA3,0xA4,0xA5,0xA6,0xA7,0xA8,0xA9,0xAA,0xAB,0xAC,0xAD,0xAE,0xAF,0xB0},
-    {0xB1,0xB2,0xB3,0xB4,0xB5,0xB6,0xB7,0xB8,0xB9,0xBA,0xBB,0xBC,0xBD,0xBE,0xBF,0xC0},
-    {0xC1,0xC2,0xC3,0xC4,0xC5,0xC6,0xC7,0xC8,0xC9,0xCA,0xCB,0xCC,0xCD,0xCE,0xCF,0xD0},
-    {0xD1,0xD2,0xD3,0xD4,0xD5,0xD6,0xD7,0xD8,0xD9,0xDA,0xDB,0xDC,0xDD,0xDE,0xDF,0xE0},
-    {0xE1,0xE2,0xE3,0xE4,0xE5,0xE6,0xE7,0xE8,0xE9,0xEA,0xEB,0xEC,0xED,0xEE,0xEF,0xF0},
-    {0xF1,0xF2,0xF3,0xF4,0xF5,0xF6,0xF7,0xF8,0xF9,0xFA,0xFB,0xFC,0xFD,0xFE,0xFF,0x00},
-    {0x10,0x20,0x30,0x40,0x50,0x60,0x70,0x80,0x90,0xA0,0xB0,0xC0,0xD0,0xE0,0xF0,0x01},
-    {0x02,0x12,0x22,0x32,0x42,0x52,0x62,0x72,0x82,0x92,0xA2,0xB2,0xC2,0xD2,0xE2,0xF2},
-    {0x03,0x13,0x23,0x33,0x43,0x53,0x63,0x73,0x83,0x93,0xA3,0xB3,0xC3,0xD3,0xE3,0xF3},
-    {0x04,0x14,0x24,0x34,0x44,0x54,0x64,0x74,0x84,0x94,0xA4,0xB4,0xC4,0xD4,0xE4,0xF4},
-    {0x05,0x15,0x25,0x35,0x45,0x55,0x65,0x75,0x85,0x95,0xA5,0xB5,0xC5,0xD5,0xE5,0xF5},
-    {0x06,0x16,0x26,0x36,0x46,0x56,0x66,0x76,0x86,0x96,0xA6,0xB6,0xC6,0xD6,0xE6,0xF6},
-    {0x07,0x17,0x27,0x37,0x47,0x57,0x67,0x77,0x87,0x97,0xA7,0xB7,0xC7,0xD7,0xE7,0xF7},
-    {0x08,0x18,0x28,0x38,0x48,0x58,0x68,0x78,0x88,0x98,0xA8,0xB8,0xC8,0xD8,0xE8,0xF8},
-    {0x09,0x19,0x29,0x39,0x49,0x59,0x69,0x79,0x89,0x99,0xA9,0xB9,0xC9,0xD9,0xE9,0xF9},
-    {0x0A,0x1A,0x2A,0x3A,0x4A,0x5A,0x6A,0x7A,0x8A,0x9A,0xAA,0xBA,0xCA,0xDA,0xEA,0xFA},
-    {0x0B,0x1B,0x2B,0x3B,0x4B,0x5B,0x6B,0x7B,0x8B,0x9B,0xAB,0xBB,0xCB,0xDB,0xEB,0xFB}
-};
+// ------------------------------------------------------
+// Convert a nibble (0–15) to hex char
+// ------------------------------------------------------
+static inline char toHexNibble(uint8_t v) {
+  return (v < 10) ? ('0' + v) : ('A' + v - 10);
+}
 
+// ------------------------------------------------------
+// Bytes → hex string
+// ------------------------------------------------------
+static inline void bytesToHex(const uint8_t *in, size_t len, char *out) {
+  for (size_t i = 0; i < len; i++) {
+    out[i * 2] = toHexNibble(in[i] >> 4);
+    out[i * 2 + 1] = toHexNibble(in[i] & 0x0F);
+  }
+  out[len * 2] = '\0';
+}
 
-String getChipSerial() {
-  String serialStr = "";
+// ------------------------------------------------------
+// Hex string → bytes
+// ------------------------------------------------------
+static inline uint8_t fromHexChar(char c) {
+  if (c >= '0' && c <= '9') return c - '0';
+  if (c >= 'A' && c <= 'F') return c - 'A' + 10;
+  if (c >= 'a' && c <= 'f') return c - 'a' + 10;
+  return 0;  // fallback
+}
+
+static inline bool hexToBytes(const char *hex, uint8_t *out, size_t *outLen) {
+  size_t hexLen = strlen(hex);
+  if (hexLen % 2 != 0) return false;
+  size_t len = hexLen / 2;
+  for (size_t i = 0; i < len; i++) {
+    out[i] = (fromHexChar(hex[i * 2]) << 4) | fromHexChar(hex[i * 2 + 1]);
+  }
+  *outLen = len;
+  return true;
+}
+
+// ------------------------------------------------------
+// Generate nonce dynamically (saves flash vs static table)
+// ------------------------------------------------------
+static inline void getNonce(uint8_t *nonce, uint8_t idx) {
+  for (uint8_t i = 0; i < BLOCK_SIZE; i++) {
+    nonce[i] = (uint8_t)(idx * 31 + i * 17 + 0x55);
+  }
+}
+
+// ------------------------------------------------------
+// Read chip serial into hex string (20 chars + null)
+// ------------------------------------------------------
+static inline void getChipSerial(char *out, size_t outLen) {
+  if (outLen < 21) return;
   for (uint8_t i = 0; i < 10; i++) {
-    uint8_t serByte = *((uint8_t *) &SIGROW.SERNUM0 + i);
-    if (serByte < 0x10) serialStr += "0"; // leading zero
-    serialStr += String(serByte, HEX);
+    uint8_t serByte = *((uint8_t *)&SIGROW.SERNUM0 + i);
+    out[i * 2] = toHexNibble(serByte >> 4);
+    out[i * 2 + 1] = toHexNibble(serByte & 0x0F);
   }
-  return serialStr;
+  out[20] = '\0';
 }
 
+// ------------------------------------------------------
+// Deterministic Nonce Generator (shared)
+// ------------------------------------------------------
+static inline void getNonce(uint8_t *nonce, uint8_t idx, uint16_t sessionSeed) {
+  uint8_t base = (uint8_t)(sessionSeed ^ idx);
 
-// Convert hex string to bytes
-void hexStringToBytes(const String &hex, uint8_t *bytes, uint8_t len) {
-  for (uint8_t i = 0; i < len; i++) {
-    String byteStr = hex.substring(i * 2, i * 2 + 2);
-    bytes[i] = (uint8_t) strtoul(byteStr.c_str(), nullptr, 16);
+  for (uint8_t i = 0; i < BLOCK_SIZE; i++) {
+    uint8_t v = base + i * 13 + (idx * 7);
+    switch (idx & 0x0F) {
+      case 0: v ^= sessionSeed; break;
+      case 1: v = ~v; break;
+      case 2: v = (v << 1) | (v >> 7); break;  // rotate left
+      case 3: v = (v >> 1) | (v << 7); break;  // rotate right
+      case 4: v += (sessionSeed & 0xFF); break;
+      case 5: v -= (sessionSeed >> 8); break;
+      case 6: v ^= (sessionSeed >> 3); break;
+      case 7: v ^= (sessionSeed << 2); break;
+      case 8: v = v * 17 + 0x53; break;
+      case 9: v = v * 29 + 0xA7; break;
+      case 10: v = (v ^ 0xAA) + (sessionSeed & 0x0F); break;
+      case 11: v = (v ^ 0x55) + (sessionSeed >> 4); break;
+      case 12: v = (v * 3) ^ idx; break;
+      case 13: v = (v * 7) ^ (sessionSeed & 0x3F); break;
+      case 14: v = (v + i) ^ (sessionSeed >> 2); break;
+      case 15: v = (v - i) ^ (sessionSeed << 1); break;
+    }
+    nonce[i] = v;
   }
 }
 
-// Encrypt data in CTR mode using TinyAES
-void encryptCTR(uint8_t* data, uint8_t len, const uint8_t* key, uint8_t* nonce) {
+// ------------------------------------------------------
+// Session seed (derived from chip serial + key)
+// ------------------------------------------------------
+static inline uint16_t deriveSessionSeed(const char *chipSerial, const uint8_t *key) {
+  uint16_t crc = 0xFFFF;
+  for (uint8_t i = 0; i < 20; i++) crc ^= chipSerial[i];
+  for (uint8_t i = 0; i < KEY_LEN; i++) crc ^= key[i];
+  return crc;
+}
+
+// ------------------------------------------------------
+// Encrypt: produces [idx (1 byte)] + [hex ciphertext]
+// ------------------------------------------------------
+bool encryptWithIdx(const char *plainText,
+                    const uint8_t *key,
+                    const char *chipSerial,
+                    uint8_t idx,
+                    char *outHex,
+                    size_t outHexLen) {
+  size_t len = strlen(plainText);
+  if (len > MAX_MESSAGE_LEN) len = MAX_MESSAGE_LEN;
+
+  // Output must hold: 2*len hex chars + 2 (idx in hex) + 1 null
+  if (outHexLen < (len * 2 + 3)) return false;
+
+  uint8_t data[MAX_MESSAGE_LEN];
+  memcpy(data, plainText, len);
+
+  // Compute sessionSeed & nonce
+  uint16_t sessionSeed = deriveSessionSeed(chipSerial, key);
+  uint8_t nonce[BLOCK_SIZE];
+  getNonce(nonce, idx, sessionSeed);
+  //    for (int i = 0; i < 16; i++) {
+  //     if (nonce[i] < 0x10) Serial.print("0"); // leading zero
+  //     Serial.print(nonce[i], HEX);
+  //     Serial.print(" ");
+  // }
+  // Serial.println();
+
+  // Encrypt
   AES_ctx ctx;
   AES_init_ctx_iv(&ctx, key, nonce);
   AES_CTR_xcrypt_buffer(&ctx, data, len);
+
+  // Store idx (2 hex chars at start)
+  outHex[0] = toHexNibble(idx >> 4);
+  outHex[1] = toHexNibble(idx & 0x0F);
+
+  // Store ciphertext
+  bytesToHex(data, len, outHex + 2);
+
+  return true;
 }
 
-// Decrypt data in CTR mode (same as encryption)
-void decryptCTR(uint8_t* data, uint8_t len, const uint8_t* key, uint8_t* nonce) {
-  encryptCTR(data, len, key, nonce);  // CTR decryption is identical to encryption
+// ------------------------------------------------------
+// Decrypt: extracts idx, regenerates nonce, decrypts
+// ------------------------------------------------------
+bool decryptWithIdx(const char *inHex,
+                    const uint8_t *key,
+                    const char *chipSerial,
+                    char *outPlain,
+                    size_t outPlainLen) {
+  if (!inHex) return false;
+  size_t inLen = strlen(inHex);
+  if (inLen < 2) return false;
+
+  // First 2 hex chars = idx
+  uint8_t idx = (fromHexChar(inHex[0]) << 4) | fromHexChar(inHex[1]);
+   //DEBUG_PRINTLN(idx);
+
+  const char *cipherHex = inHex + 2;
+
+  uint8_t data[MAX_MESSAGE_LEN];
+  size_t dataLen;
+
+
+  if (!hexToBytes(cipherHex, data, &dataLen)) return false;
+  if (dataLen > MAX_MESSAGE_LEN || outPlainLen < dataLen + 1) return false;
+
+  // Compute same nonce
+  uint16_t sessionSeed = deriveSessionSeed(chipSerial, key);
+  // Serial.println(chipSerial);
+
+  // for (int i = 0; i < 16; i++) {
+  //   Serial.print(key[i]);
+  //   Serial.print(" ");
+  // }
+  // Serial.println();
+
+  // Serial.println(sessionSeed);
+  uint8_t nonce[BLOCK_SIZE];
+  getNonce(nonce, idx, sessionSeed);
+
+  // for (int i = 0; i < 16; i++) {
+  //   if (nonce[i] < 0x10) Serial.print("0");  // leading zero
+  //   Serial.print(nonce[i], HEX);
+  //   Serial.print(" ");
+  // }
+  // Serial.println();
+
+
+
+  // Decrypt
+  AES_ctx ctx;
+  AES_init_ctx_iv(&ctx, key, nonce);
+  AES_CTR_xcrypt_buffer(&ctx, data, dataLen);
+
+  memcpy(outPlain, data, dataLen);
+  outPlain[dataLen] = '\0';
+  return true;
 }
 
+// ------------------------------------------------------
+// Test using idx-based nonce (sends only 1 byte idx)
+// ------------------------------------------------------
+void aesENDE_TEST(const char *msg) {
+   //DEBUG_PRINTLN(F("----- AES TEST -----"));
+   //DEBUG_PRINT(F("Msg: "));
+   //DEBUG_PRINTLN(msg);
 
-/**
- * Encrypts a plaintext and returns a hex-encoded ciphertext string.
- * The caller must provide the key and nonce (both BLOCK_SIZE bytes).
- * Returns a pointer to a static buffer—only valid until the next call.
- */
-char* encryptStringWithKeyNonce(const char *plainText,
-                                const uint8_t *key,
-                                const uint8_t *nonce) {
-    static char encryptedHex[MAX_MESSAGE_LEN * 2 + 1];
-    uint8_t data[MAX_MESSAGE_LEN];
-    size_t len = strlen(plainText);
-    if (len > MAX_MESSAGE_LEN) len = MAX_MESSAGE_LEN;
-    memcpy(data, plainText, len);
+  // Get chip serial
+  char HwSerialKey[21];
+  getChipSerial(HwSerialKey, sizeof(HwSerialKey));
+   //DEBUG_PRINT(F("Chip Serial: "));
+   //DEBUG_PRINTLN(HwSerialKey);
 
-    // Perform AES-CTR encryption
-    encryptCTR(data, (uint8_t)len, key, (uint8_t*)nonce);
+  // Build AES key (same as before)
+  uint8_t key[KEY_LEN] = { 0 };
+  const char *last12 = HwSerialKey + 8;  // last 12 chars of 20-char serial
+  memcpy(key + (KEY_LEN - 14), last12, 12);
+  uint16_t rnd = (uint16_t)rand();
+  rnd = 1;
+  key[KEY_LEN - 2] = rnd >> 8;
+  key[KEY_LEN - 1] = rnd & 0xFF;
 
-    // Convert ciphertext bytes to compact hex
-    for (size_t i = 0; i < len; i++) {
-        sprintf(&encryptedHex[i * 2], "%02X", data[i]);
-    }
-    encryptedHex[len * 2] = '\0';
-    return encryptedHex;
-}
+//    //DEBUG_PRINT(F("Key: "));
+//   for (uint8_t i = 0; i < KEY_LEN; i++) {
+//     if (key[i] < 0x10)  //DEBUG_PRINT('0');
+// #ifdef SERIAL_DEBUG
+//     Serial.print(key[i], HEX);
+// #endif
+//      //DEBUG_PRINT(' ');
+//   }
+//    //DEBUG_PRINTLN();
 
-/**
- * Decrypts a hex-encoded ciphertext using AES-CTR and returns plaintext.
- * Requires key and nonce supplied by the caller.
- * Returns pointer to static buffer—only valid until next call.
- */
-char* decryptStringWithKeyNonce(const char *encryptedHex,
-                                const uint8_t *key,
-                                const uint8_t *nonce) {
-    static char decryptedText[MAX_MESSAGE_LEN + 1];
-    if (!encryptedHex) {
-        return NULL;
-    }
+  // Choose message index (simulate increment per packet)
+  uint8_t idx = rand() % 32;
+   //DEBUG_PRINT(F("Using idx: "));
+   //DEBUG_PRINTLN(idx);
 
-    size_t hexLen = strlen(encryptedHex);
-    if (hexLen % 2 != 0) {
-        return NULL;
-    }
-    size_t dataLen = hexLen / 2;
-    if (dataLen > MAX_MESSAGE_LEN) {
-        return NULL;
-    }
+  // Encrypt → outHex = [idx(2 hex chars)] + [ciphertext]
+  char encBuf[MAX_MESSAGE_LEN * 2 + 3];
+  if (!encryptWithIdx(msg, key, HwSerialKey, idx, encBuf, sizeof(encBuf))) {
+     //DEBUG_PRINTLN(F("Encrypt failed"));
+    return;
+  }
+   //DEBUG_PRINT(F("Encrypted: "));
+   //DEBUG_PRINTLN(encBuf);
 
-    uint8_t data[MAX_MESSAGE_LEN];
-    for (size_t i = 0; i < dataLen; i++) {
-        char buf[3] = { encryptedHex[i * 2], encryptedHex[i * 2 + 1], '\0' };
-        char *endptr = NULL;
-        unsigned long val = strtoul(buf, &endptr, 16);
-        if (endptr == buf || *endptr != '\0' || val > 0xFF) {
-            return NULL;
-        }
-        data[i] = (uint8_t)val;
-    }
+  // Decrypt → extracts idx, regenerates nonce internally
+  char decBuf[MAX_MESSAGE_LEN + 1];
+  if (decryptWithIdx(encBuf, key, HwSerialKey, decBuf, sizeof(decBuf))) {
+     //DEBUG_PRINT(F("Decrypted: "));
+     //DEBUG_PRINTLN(decBuf);
+  } else {
+     //DEBUG_PRINTLN(F("Decrypt failed"));
+  }
 
-    // Decrypt using AES-CTR (same as encryption)
-    decryptCTR(data, (uint8_t)dataLen, key, (uint8_t*)nonce);
-
-    // Copy decrypted bytes and null-terminate
-    memcpy(decryptedText, data, dataLen);
-    decryptedText[dataLen] = '\0';
-    return decryptedText;
+   //DEBUG_PRINTLN(F("--------------------"));
 }

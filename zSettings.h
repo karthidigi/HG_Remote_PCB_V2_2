@@ -1,0 +1,16 @@
+// ---------- FILE: zSettings.h ----------
+#pragma once
+#define FIRMWARE_VERSION        "ATtiny1606"
+#define HARDWARE_VERSION        "1.1.1"
+
+// Keep Serial debug on for now. Comment out to remove prints.
+//#define SERIAL_DEBUG
+#define SERIAL_BAUD     115200
+#define SERIAL_TIMEOUT  100
+
+
+#define WATCHDOG 1  
+
+#define ENCRYPTION_ENABLED 1
+
+#define LP_TIMEOUT_MS (1UL * 60UL * 1000UL) // 1 minutes
