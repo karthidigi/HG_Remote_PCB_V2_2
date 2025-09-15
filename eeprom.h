@@ -4,9 +4,9 @@
 #define PEER_SERIAL_LEN          21     // 20 chars + '\0'
 
 // Save peer serial (20-char hex string + null)
-static inline void savePeerSerial(const char *serial) {
+static inline void savePeerSerial(const char *buffer) {
   for (uint8_t i = 0; i < PEER_SERIAL_LEN; i++) {
-    char c = serial[i];
+    char c = buffer[i];
     EEPROM.update(EEPROM_PEER_SERIAL_ADDR + i, c);
     if (c == '\0') break;  // stop early if null terminator found
   }

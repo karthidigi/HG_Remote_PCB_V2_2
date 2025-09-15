@@ -1,10 +1,10 @@
 #include "src/aes.h"
-#include "debug.h"
 
 #define MAX_MESSAGE_LEN 32
 #define KEY_LEN 16
 #define BLOCK_SIZE 16
 
+ char hwSerialKey[21]; // for encryption purpose
 // ------------------------------------------------------
 // Convert a nibble (0–15) to hex char
 // ------------------------------------------------------
@@ -65,6 +65,7 @@ static inline void getChipSerial(char *out, size_t outLen) {
   }
   out[20] = '\0';
 }
+
 
 // ------------------------------------------------------
 // Deterministic Nonce Generator (shared)
@@ -128,12 +129,6 @@ bool encryptWithIdx(const char *plainText,
   uint16_t sessionSeed = deriveSessionSeed(chipSerial, key);
   uint8_t nonce[BLOCK_SIZE];
   getNonce(nonce, idx, sessionSeed);
-  //    for (int i = 0; i < 16; i++) {
-  //     if (nonce[i] < 0x10) Serial.print("0"); // leading zero
-  //     Serial.print(nonce[i], HEX);
-  //     Serial.print(" ");
-  // }
-  // Serial.println();
 
   // Encrypt
   AES_ctx ctx;
@@ -164,7 +159,7 @@ bool decryptWithIdx(const char *inHex,
 
   // First 2 hex chars = idx
   uint8_t idx = (fromHexChar(inHex[0]) << 4) | fromHexChar(inHex[1]);
-   //DEBUG_PRINTLN(idx);
+  //DEBUG_PRINTN(idx);
 
   const char *cipherHex = inHex + 2;
 
@@ -177,26 +172,8 @@ bool decryptWithIdx(const char *inHex,
 
   // Compute same nonce
   uint16_t sessionSeed = deriveSessionSeed(chipSerial, key);
-  // Serial.println(chipSerial);
-
-  // for (int i = 0; i < 16; i++) {
-  //   Serial.print(key[i]);
-  //   Serial.print(" ");
-  // }
-  // Serial.println();
-
-  // Serial.println(sessionSeed);
   uint8_t nonce[BLOCK_SIZE];
   getNonce(nonce, idx, sessionSeed);
-
-  // for (int i = 0; i < 16; i++) {
-  //   if (nonce[i] < 0x10) Serial.print("0");  // leading zero
-  //   Serial.print(nonce[i], HEX);
-  //   Serial.print(" ");
-  // }
-  // Serial.println();
-
-
 
   // Decrypt
   AES_ctx ctx;
@@ -211,58 +188,50 @@ bool decryptWithIdx(const char *inHex,
 // ------------------------------------------------------
 // Test using idx-based nonce (sends only 1 byte idx)
 // ------------------------------------------------------
-void aesENDE_TEST(const char *msg) {
-   //DEBUG_PRINTLN(F("----- AES TEST -----"));
-   //DEBUG_PRINT(F("Msg: "));
-   //DEBUG_PRINTLN(msg);
+void aesInit(const char *msg) {
+  //DEBUG_PRINTN(F("----- AES TEST -----"));
+  //DEBUG_PRINT(F("Msg: "));
+  //DEBUG_PRINTN(msg);
 
-  // Get chip serial
-  char HwSerialKey[21];
-  getChipSerial(HwSerialKey, sizeof(HwSerialKey));
-   //DEBUG_PRINT(F("Chip Serial: "));
-   //DEBUG_PRINTLN(HwSerialKey);
+  //Get chip serial
+  //char hwSerialKey[21];
+  //getChipSerial(hwSerialKey, sizeof(hwSerialKey));
+
+  //DEBUG_PRINT(F("Chip Serial: "));
+  //DEBUG_PRINTN(hwSerialKey);
 
   // Build AES key (same as before)
   uint8_t key[KEY_LEN] = { 0 };
-  const char *last12 = HwSerialKey + 8;  // last 12 chars of 20-char serial
+  const char *last12 = hwSerialKey + 8;  // last 12 chars of 20-char serial
   memcpy(key + (KEY_LEN - 14), last12, 12);
   uint16_t rnd = (uint16_t)rand();
   rnd = 1;
   key[KEY_LEN - 2] = rnd >> 8;
   key[KEY_LEN - 1] = rnd & 0xFF;
 
-//    //DEBUG_PRINT(F("Key: "));
-//   for (uint8_t i = 0; i < KEY_LEN; i++) {
-//     if (key[i] < 0x10)  //DEBUG_PRINT('0');
-// #ifdef SERIAL_DEBUG
-//     Serial.print(key[i], HEX);
-// #endif
-//      //DEBUG_PRINT(' ');
-//   }
-//    //DEBUG_PRINTLN();
-
   // Choose message index (simulate increment per packet)
+
   uint8_t idx = rand() % 32;
-   //DEBUG_PRINT(F("Using idx: "));
-   //DEBUG_PRINTLN(idx);
+  //DEBUG_PRINT(F("Using idx: "));
+  //DEBUG_PRINTN(idx);
 
   // Encrypt → outHex = [idx(2 hex chars)] + [ciphertext]
   char encBuf[MAX_MESSAGE_LEN * 2 + 3];
-  if (!encryptWithIdx(msg, key, HwSerialKey, idx, encBuf, sizeof(encBuf))) {
-     //DEBUG_PRINTLN(F("Encrypt failed"));
+  if (!encryptWithIdx(msg, key, hwSerialKey, idx, encBuf, sizeof(encBuf))) {
+    //DEBUG_PRINTN(F("Encrypt failed"));
     return;
   }
-   //DEBUG_PRINT(F("Encrypted: "));
-   //DEBUG_PRINTLN(encBuf);
+  //DEBUG_PRINT(F("Encrypted: "));
+  //DEBUG_PRINTN(encBuf);
 
   // Decrypt → extracts idx, regenerates nonce internally
   char decBuf[MAX_MESSAGE_LEN + 1];
-  if (decryptWithIdx(encBuf, key, HwSerialKey, decBuf, sizeof(decBuf))) {
-     //DEBUG_PRINT(F("Decrypted: "));
-     //DEBUG_PRINTLN(decBuf);
+  if (decryptWithIdx(encBuf, key, hwSerialKey, decBuf, sizeof(decBuf))) {
+    //DEBUG_PRINT(F("Decrypted: "));
+    //DEBUG_PRINTN(decBuf);
   } else {
-     //DEBUG_PRINTLN(F("Decrypt failed"));
+    //DEBUG_PRINTN(F("Decrypt failed"));
   }
 
-   //DEBUG_PRINTLN(F("--------------------"));
+  //DEBUG_PRINTN(F("--------------------"));
 }
