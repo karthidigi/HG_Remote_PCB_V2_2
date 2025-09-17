@@ -1,6 +1,6 @@
 /////////////////////////////////////
 
-void funcLedReset(){
+void funcLedReset() {
   pinMode(LED_J1, INPUT);
   pinMode(LED_J2, INPUT);
   pinMode(LED_J3, INPUT);
@@ -8,7 +8,7 @@ void funcLedReset(){
 }
 
 
-void funcStaLWhite(){
+void funcStaLWhite() {
   funcLedReset();
   pinMode(LED_ANODE, OUTPUT);
   pinMode(LED_J1, OUTPUT);
@@ -20,25 +20,25 @@ void funcStaLWhite(){
   digitalWrite(LED_J3, LOW);
 }
 
-void funcStaLBlue(){
+void funcStaLBlue() {
   funcLedReset();
   pinMode(LED_ANODE, OUTPUT);
   pinMode(LED_J3, OUTPUT);
   digitalWrite(LED_ANODE, HIGH);
-  digitalWrite(LED_J3, LOW); 
+  digitalWrite(LED_J3, LOW);
 }
 
-void funcStaLRed(){
+void funcStaLRed() {
   funcLedReset();
   pinMode(LED_J3, OUTPUT);
   digitalWrite(LED_J3, HIGH);
-   pinMode(LED_ANODE, OUTPUT);
+  pinMode(LED_ANODE, OUTPUT);
   pinMode(LED_J1, OUTPUT);
   digitalWrite(LED_ANODE, HIGH);
   digitalWrite(LED_J1, LOW);
 }
 
-void funcM1LRed(){
+void funcM1LRed() {
   funcLedReset();
   pinMode(LED_ANODE, OUTPUT);
   pinMode(LED_J1, OUTPUT);
@@ -46,7 +46,7 @@ void funcM1LRed(){
   digitalWrite(LED_J1, LOW);
 }
 
-void funcM1LGreen(){
+void funcM1LGreen() {
   funcLedReset();
   pinMode(LED_ANODE, OUTPUT);
   pinMode(LED_J2, OUTPUT);
@@ -54,7 +54,7 @@ void funcM1LGreen(){
   digitalWrite(LED_J2, LOW);
 }
 
-void funcM1Yellow(){
+void funcM1Yellow() {
   funcLedReset();
   pinMode(LED_ANODE, OUTPUT);
   pinMode(LED_J1, OUTPUT);
@@ -64,19 +64,19 @@ void funcM1Yellow(){
   digitalWrite(LED_J2, LOW);
 }
 
-void funcM2LGreen(){
+void funcM2LGreen() {
   funcLedReset();
   pinMode(LED_J2, OUTPUT);
   digitalWrite(LED_J2, HIGH);
 }
 
-void funcM2LRed(){ 
+void funcM2LRed() {
   funcLedReset();
   pinMode(LED_J3, OUTPUT);
   digitalWrite(LED_J3, HIGH);
 }
 
-void funcM2Yellow(){
+void funcM2Yellow() {
   funcLedReset();
   pinMode(LED_J2, OUTPUT);
   pinMode(LED_J3, OUTPUT);
@@ -84,14 +84,30 @@ void funcM2Yellow(){
   digitalWrite(LED_J2, HIGH);
 }
 
-void funcLedTest(){
-  funcStaLWhite(); delay(50);
-  funcStaLBlue(); delay(50);
-  funcM1LRed(); delay(50);
-  funcM1LGreen(); delay(50);
-  funcM1Yellow(); delay(50);
-  funcM2LRed(); delay(50);
-  funcM2LGreen(); delay(50);
-  funcM2Yellow(); delay(50);
+void funcLedTest() {
+  funcStaLWhite();
+  delay(50);
+  funcStaLBlue();
+  delay(50);
+  funcM1LRed();
+  delay(50);
+  funcM1LGreen();
+  delay(50);
+  funcM1Yellow();
+  delay(50);
+  funcM2LRed();
+  delay(50);
+  funcM2LGreen();
+  delay(50);
+  funcM2Yellow();
+  delay(50);
   funcLedReset();
+}
+
+void lowBattAlert() {
+  funcM1LRed();
+  delay(500);
+  funcLedReset();
+  delay(500);
+  funcM1LRed();
 }

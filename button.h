@@ -1,36 +1,24 @@
 #define AES_KEY_LEN 16
 
-#define BUZZ_DUR 120
 
-// #define NUM_BUTTONS 4
-// static const int buttonPins[NUM_BUTTONS] = { M1_ON_BTN, M1_OFF_BTN, M2_OFF_BTN, STA_BTN };
 
 #define NUM_BUTTONS 5
-static const int buttonPins[NUM_BUTTONS] = { M1_ON_BTN, M1_OFF_BTN, M2_OFF_BTN, STA_BTN, M2_ON_BTN };
+static const int buttonPins[NUM_BUTTONS] = { M1_ON_BTN, M1_OFF_BTN, M2_ON_BTN, M2_OFF_BTN, STA_BTN };
 
-static uint8_t buttonStates[NUM_BUTTONS];
-static uint8_t lastButtonStates[NUM_BUTTONS];
-static unsigned long lastDebounceTimes[NUM_BUTTONS];
+static uint8_t buttonStates[NUM_BUTTONS] = { 1, 1, 1, 1, 1 };
+static uint8_t lastButtonStates[NUM_BUTTONS] = { 1, 1, 1, 1, 1 };
+static unsigned long lastDebounceTimes[NUM_BUTTONS] = { 0, 0, 0, 0, 0 };
 static const unsigned long debounceDelay = 50UL;
 
+void encryptNTx(const char *msg) {
 
-
-void encryptNTx(const char *msg){
-
-encryptData(msg);
-send_lora_data((uint8_t *)txBuffer, strlen(txBuffer));
-//DEBUG_PRINTN(txBuffer);
-
+  encryptData(msg);
+  send_lora_data((uint8_t *)txBuffer, 32);
+  //send_lora_data((uint8_t *)txBuffer, strlen(txBuffer));
+  //DEBUG_PRINTN(txBuffer);
 }
 
 
-static inline void hwbuttonInit() {
-  for (int i = 0; i < NUM_BUTTONS; ++i) {
-    buttonStates[i] = HIGH;
-    lastButtonStates[i] = HIGH;
-    lastDebounceTimes[i] = 0;
-  }
-}
 
 static inline void hwbuttonFunc() {
   for (int i = 0; i < NUM_BUTTONS; ++i) {
@@ -39,52 +27,43 @@ static inline void hwbuttonFunc() {
     if ((millis() - lastDebounceTimes[i]) > debounceDelay) {
       if (reading != buttonStates[i]) {
         buttonStates[i] = reading;
-        if (buttonStates[i] == LOW) {  // pressed
+        if (buttonStates[i] == LOW && buttonEn[i] == HIGH) {  // restarting my controller
+          watchdogReset();
+          funcStaLBlue();
+          buzBeep(BUZZ_NOR);
+          lowPowerKick();
+          delay(100);
+          funcLedReset();
+          buttonEn[0] = 0;
+          buttonEn[1] = 0;
+          buttonEn[2] = 0;
+          buttonEn[3] = 0;
+          while (digitalRead(buttonPins[i]) == LOW) {
+            delay(1);  // small delay to avoid CPU hogging
+          }
           switch (i) {
             case 0:
-              //funcM1LGreen();
-              encryptNTx("[M1ON]");
-              buzBeep(BUZZ_DUR);
-              funcLedReset();
-              //watchdogReset();
-              lowPowerKick();
+              encryptNTx("[1N]");
               break;
             case 1:
-              //funcM1LRed();
-              encryptNTx("[M1OFF]");
-              buzBeep(BUZZ_DUR);
-              funcLedReset();
-              //watchdogReset();
-              lowPowerKick();
+              encryptNTx("[1F]");
               break;
             case 2:
-              //funcM2LRed();
-              encryptNTx("[M1OFF]");
-              buzBeep(BUZZ_DUR);
-              funcLedReset();
-              //watchdogReset();
-              lowPowerKick();
+              encryptNTx("[2N]");
               break;
             case 3:
-              //funcStaLBlue();
-              encryptNTx("[STB]");
-              buzBeep(BUZZ_DUR);
-              funcLedReset();
-              //watchdogReset();
-              lowPowerKick();
+              encryptNTx("[2F]");
               break;
             case 4:
-              //funcM2LGreen();
-              encryptNTx("[M1ON]");
-              buzBeep(BUZZ_DUR);
-              funcLedReset();
-              //watchdogReset();
-              lowPowerKick();
+              encryptNTx("[S?]");
               break;
           }
+          msgTxd = 1;
+          ackTimerMillis = millis();
         }
       }
     }
+
     lastButtonStates[i] = reading;
   }
 }

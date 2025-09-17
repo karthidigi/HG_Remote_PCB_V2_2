@@ -1,8 +1,10 @@
 #include "zSettings.h"
 #include "hwPins.h"
 #include "led.h"
+#include "batVol.h"
 #include "buz.h"
 #include "debug.h"
+#include "states.h"
 #include "watDog.h"
 #include "eeprom.h"
 #include "aesMain.h"
@@ -15,14 +17,23 @@
 #include "button.h"
 
 void setup() {
+
   hwPinInit();
-  funcLedTest();
-  buzBeep(100);
+  /////////////////////
+  if (battCheck()) {
+    funcStaLWhite();
+  } else {
+    lowBattAlert();
+  }
+  delay(500);
+  //noNetworkTone();
+  funcLedReset();
+  ////////////////////
+  buzBeep(BUZZ_NOR);
   hwSerialInit();
   getDeviceSerId();
   aesInit("[horizon]");
   llcc68Init();
-  hwbuttonInit();
   lowPowerInit();
   if (!wdtEnabled) {
     watchdogInit();
@@ -31,15 +42,16 @@ void setup() {
   ///////////////////////
   savePeerSerial("42407197000090220136");
   delay(100);
- 
 }
 
 void loop() {
+  lowPowerPoll();
   hwbuttonFunc();
   llcc68Func();
-  lowPowerPoll();
   if (wdtEnabled) {
     watchdogReset();
   }
+  funcLedReset();
+  ackReception();
   delay(5);
 }
