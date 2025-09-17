@@ -1,5 +1,7 @@
+#define ENABLED 1
+#define DISABLED 0
 ////////////////////////////////////////
-static uint8_t buttonEn[5] = { 1, 1, 1, 1, 1 };
+static uint8_t buttonEn[5] = { DISABLED, DISABLED, DISABLED, DISABLED, ENABLED };
 bool msgTxd = 0;
 unsigned long ackTimerMillis = 0;
 ////////////////////////////////////////
@@ -8,11 +10,11 @@ void ackReception() {
     if (millis() - ackTimerMillis > 10000) {
       noNetworkTone();
       funcStaLWhite();
-      delay(300);
+     delay(300);
       funcLedReset();
-      delay(300); 
+     delay(300); 
       funcStaLWhite();
-      delay(300);
+     delay(300);
       funcLedReset();
       msgTxd = 0;
     }

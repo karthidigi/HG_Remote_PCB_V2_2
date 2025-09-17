@@ -1,15 +1,15 @@
 
 // ---------------- NOTE DEFINITIONS ----------------
 
-#define NOTE_C5  523
-#define NOTE_A4  440
-#define NOTE_F4  349
+#define NOTE_C5 523
+#define NOTE_A4 440
+#define NOTE_F4 349
 /////////////////////////////////////////////
-#define NOTE_C5  523
-#define NOTE_E5  659
-#define NOTE_G5  784
-#define NOTE_C6  1047
-#define NOTE_E6  1319
+#define NOTE_C5 523
+#define NOTE_E5 659
+#define NOTE_G5 784
+#define NOTE_C6 1047
+#define NOTE_E6 1319
 
 
 // ---------------- CUSTOM GAME-LIKE MELODY ----------------
@@ -33,7 +33,7 @@ void MotorOnTone() {
     unsigned int halfPeriod = 1000000UL / (2 * freq);
 
     while (millis() - start < noteDuration) {
-      digitalWrite(BUZ, LOW);   // buzzer ON (active-low)
+      digitalWrite(BUZ, LOW);  // buzzer ON (active-low)
       delayMicroseconds(halfPeriod);
       digitalWrite(BUZ, HIGH);  // buzzer OFF
       delayMicroseconds(halfPeriod);
@@ -57,7 +57,7 @@ void noNetworkTone() {
     unsigned int halfPeriod = 1000000UL / (2 * freq);
 
     while (millis() - start < noteDuration) {
-      digitalWrite(BUZ, LOW);   // buzzer ON (active-low)
+      digitalWrite(BUZ, LOW);  // buzzer ON (active-low)
       delayMicroseconds(halfPeriod);
       digitalWrite(BUZ, HIGH);  // buzzer OFF
       delayMicroseconds(halfPeriod);
@@ -74,5 +74,3 @@ static inline void buzBeep(uint16_t ms) {
   delay(ms);
   digitalWrite(BUZ, HIGH);
 }
-
-

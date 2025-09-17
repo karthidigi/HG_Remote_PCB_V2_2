@@ -26,7 +26,6 @@ void setup() {
     lowBattAlert();
   }
   delay(500);
-  //noNetworkTone();
   funcLedReset();
   ////////////////////
   buzBeep(BUZZ_NOR);

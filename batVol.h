@@ -31,8 +31,8 @@ uint16_t readVdd() {
 bool battCheck() {
   uint16_t vdd = readVdd();
   if (vdd <= BAT_VOL_MIN) {
-   return false;
-  }else{
+    return false;
+  } else {
     return true;
   }
 }

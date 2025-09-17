@@ -12,7 +12,7 @@
 #define WATCHDOG 1  
 
 /////////////////////////////////////////////////////
-#define LP_TIMEOUT_MS (1UL * 60UL * 1000UL) // 1 minutes
+#define LP_TIMEOUT_MS (30UL * 1000UL) // 1 minutes
 
 /////////////////////////////////////////////////////
 #define BUZZ_NOR 120

@@ -4,8 +4,13 @@
 #include "src/llcc68_hal.h"
 
 
-static uint8_t payload[32];
-static uint8_t bufferRadio[32];
+// static uint8_t payload[32];
+// static uint8_t bufferRadio[32];
+
+static uint8_t radioBuf[32];   // Shared TX/RX buffer
+#define payload   radioBuf     // alias for TX
+#define bufferRadio radioBuf   // alias for RX
+
 static unsigned long state_start_time = 0;
 static const unsigned long TX_TIMEOUT_MS = 5000UL;
 static const unsigned long RX_TIMEOUT_MS = 5000UL;
@@ -54,9 +59,9 @@ llcc68_hal_status_t llcc68_hal_read(const void* context, const uint8_t* command,
 
 llcc68_hal_status_t llcc68_hal_reset(const void* context) {
   digitalWrite(LLCC68_RESET, LOW);
-  delay(10);
+ delay(10);
   digitalWrite(LLCC68_RESET, HIGH);
-  delay(10);
+ delay(10);
   return LLCC68_HAL_STATUS_OK;
 }
 
@@ -99,20 +104,20 @@ static inline void llcc68Init() {
 
   if (llcc68_hal_reset(&llcc68_context) != LLCC68_HAL_STATUS_OK) {
     //DEBUG_PRINTN("Reset Fail");
-    delay(10);
+   delay(10);
   }
 
   // Minimal configuration - keep same as before to maintain behavior
   if (llcc68_set_standby(&llcc68_context, LLCC68_STANDBY_CFG_RC) != LLCC68_STATUS_OK) {
-    delay(10);
+   delay(10);
     //DEBUG_PRINTN("STAND BY Fail");
   }
   if (llcc68_set_pkt_type(&llcc68_context, LLCC68_PKT_TYPE_LORA) != LLCC68_STATUS_OK) {
-    delay(10);
+   delay(10);
     //DEBUG_PRINTN("PKT TYPE Fail");
   }
   if (llcc68_set_rf_freq(&llcc68_context, 867000000) != LLCC68_STATUS_OK) {
-    delay(10);
+   delay(10);
     //DEBUG_PRINTN("FREQ Fail");
   }
 
@@ -240,7 +245,7 @@ static inline void llcc68Func() {
           }
           llcc68_clear_irq_status(&llcc68_context, LLCC68_IRQ_RX_DONE);
         } else {
-          delay(10);
+         delay(10);
           //DEBUG_PRINTN("No RX IRQ or IRQ read fail");
         }
         radio_state = STATE_IDLE;

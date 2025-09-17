@@ -1,4 +1,5 @@
 /////////////////////////////////////
+#include <util/delay.h>
 
 void funcLedReset() {
   pinMode(LED_J1, INPUT);
@@ -86,28 +87,28 @@ void funcM2Yellow() {
 
 void funcLedTest() {
   funcStaLWhite();
-  delay(50);
+ delay(50);
   funcStaLBlue();
-  delay(50);
+ delay(50);
   funcM1LRed();
-  delay(50);
+ delay(50);
   funcM1LGreen();
-  delay(50);
+ delay(50);
   funcM1Yellow();
-  delay(50);
+ delay(50);
   funcM2LRed();
-  delay(50);
+ delay(50);
   funcM2LGreen();
-  delay(50);
+ delay(50);
   funcM2Yellow();
-  delay(50);
+ delay(50);
   funcLedReset();
 }
 
 void lowBattAlert() {
   funcM1LRed();
-  delay(500);
+ delay(500);
   funcLedReset();
-  delay(500);
+ delay(500);
   funcM1LRed();
 }

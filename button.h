@@ -1,10 +1,7 @@
 #define AES_KEY_LEN 16
 
-
-
 #define NUM_BUTTONS 5
-static const int buttonPins[NUM_BUTTONS] = { M1_ON_BTN, M1_OFF_BTN, M2_ON_BTN, M2_OFF_BTN, STA_BTN };
-
+static const uint8_t buttonPins[NUM_BUTTONS] = { M1_ON_BTN, M1_OFF_BTN, M2_ON_BTN, M2_OFF_BTN, STA_BTN };
 static uint8_t buttonStates[NUM_BUTTONS] = { 1, 1, 1, 1, 1 };
 static uint8_t lastButtonStates[NUM_BUTTONS] = { 1, 1, 1, 1, 1 };
 static unsigned long lastDebounceTimes[NUM_BUTTONS] = { 0, 0, 0, 0, 0 };
@@ -21,8 +18,8 @@ void encryptNTx(const char *msg) {
 
 
 static inline void hwbuttonFunc() {
-  for (int i = 0; i < NUM_BUTTONS; ++i) {
-    int reading = digitalRead(buttonPins[i]);
+  for (uint8_t i = 0; i < NUM_BUTTONS; ++i) {
+    uint8_t reading = digitalRead(buttonPins[i]);
     if (reading != lastButtonStates[i]) lastDebounceTimes[i] = millis();
     if ((millis() - lastDebounceTimes[i]) > debounceDelay) {
       if (reading != buttonStates[i]) {

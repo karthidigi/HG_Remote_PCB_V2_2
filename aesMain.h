@@ -4,7 +4,7 @@
 #define KEY_LEN 16
 #define BLOCK_SIZE 16
 
- char hwSerialKey[21]; // for encryption purpose
+char hwSerialKey[21];  // for encryption purpose
 // ------------------------------------------------------
 // Convert a nibble (0–15) to hex char
 // ------------------------------------------------------

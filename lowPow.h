@@ -26,11 +26,11 @@ static inline void lowPowerKick() {
 static inline void enterSleep() {
   // 1. Put LoRa to sleep
   llcc68_set_sleep(&llcc68_context, LLCC68_SLEEP_CFG_WARM_START);
-  // buzBeep(100);
-  // delay(200);
-  // buzBeep(100);
-  // delay(200);
-  // buzBeep(100);
+  buzBeep(100);
+ delay(200);
+  buzBeep(100);
+ delay(200);
+  buzBeep(100);
 
   // 2. Disable watchdog before sleep
   watchdogDisableFun();

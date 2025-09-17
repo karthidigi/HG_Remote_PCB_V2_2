@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////
 void getDeviceSerId() {
   getChipSerial(hwSerialKey, sizeof(hwSerialKey));
-  DEBUG_PRINT("hwSerialKey: ");
-  DEBUG_PRINTN(hwSerialKey);
+  //DEBUG_PRINT("hwSerialKey: ");
+  //DEBUG_PRINTN(hwSerialKey);
 }
 /////////////////////////////////////////////////////////////
