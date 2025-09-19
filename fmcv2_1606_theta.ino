@@ -44,13 +44,16 @@ void setup() {
 }
 
 void loop() {
+
   lowPowerPoll();
   hwbuttonFunc();
   llcc68Func();
+  
   if (wdtEnabled) {
     watchdogReset();
   }
   funcLedReset();
   ackReception();
+
   delay(5);
 }

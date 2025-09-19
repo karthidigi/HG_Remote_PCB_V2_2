@@ -9,16 +9,18 @@ void rxFunc() {
     buttonEn[1] = ENABLED;
     buttonEn[2] = DISABLED;
     buttonEn[3] = DISABLED;
+    buttonEn[4] = ENABLED;
     funcM1LGreen();
     MotorOnTone();
     funcLedReset();
 
   } else if (strcmp(encapData, "1F") == 0) {
     //DEBUG_PRINTN(F("M10 received"));
-    buttonEn[0] = ENABLED;  
+    buttonEn[0] = ENABLED;
     buttonEn[1] = DISABLED;
     buttonEn[2] = ENABLED;
     buttonEn[3] = DISABLED;
+    buttonEn[4] = ENABLED;
     funcM1LRed();
     buzBeep(BUZZ_OFF);
     delay(1000);
@@ -29,26 +31,29 @@ void rxFunc() {
     buttonEn[1] = DISABLED;
     buttonEn[2] = ENABLED;
     buttonEn[3] = DISABLED;
+    buttonEn[4] = ENABLED;
     funcM2LGreen();
     buzBeep(BUZZ_OFF);
     delay(1000);
     funcLedReset();
   } else if (strcmp(encapData, "2F") == 0) {
     //DEBUG_PRINTN(F("M20 received"));
-    buttonEn[0] = ENABLED;  //
-    buttonEn[1] = DISABLED;  //
-    buttonEn[2] = ENABLED;  //
+    buttonEn[0] = ENABLED;   
+    buttonEn[1] = DISABLED;  
+    buttonEn[2] = ENABLED;   
     buttonEn[3] = DISABLED;
+    buttonEn[4] = ENABLED;
     funcM2LRed();
     buzBeep(BUZZ_OFF);
     delay(1000);
     funcLedReset();
-  }else if (strcmp(encapData, "A0") == 0) {
+  } else if (strcmp(encapData, "A0") == 0) {
     //DEBUG_PRINTN(F("M20 received"));
-    buttonEn[0] = ENABLED;  //
-    buttonEn[1] = DISABLED;  //
-    buttonEn[2] = ENABLED;  //
+    buttonEn[0] = ENABLED;   
+    buttonEn[1] = DISABLED;  
+    buttonEn[2] = ENABLED;   
     buttonEn[3] = DISABLED;
+    buttonEn[4] = ENABLED;
     funcM2LRed();
     buzBeep(BUZZ_OFF);
     delay(1000);

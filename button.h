@@ -24,20 +24,28 @@ static inline void hwbuttonFunc() {
     if ((millis() - lastDebounceTimes[i]) > debounceDelay) {
       if (reading != buttonStates[i]) {
         buttonStates[i] = reading;
-        if (buttonStates[i] == LOW && buttonEn[i] == HIGH) {  // restarting my controller
+
+        if ((buttonStates[i] == LOW) && (buttonEn[i] == ENABLED)) {  // restarting my controller
           watchdogReset();
           funcStaLBlue();
           buzBeep(BUZZ_NOR);
           lowPowerKick();
           delay(100);
           funcLedReset();
-          buttonEn[0] = 0;
-          buttonEn[1] = 0;
-          buttonEn[2] = 0;
-          buttonEn[3] = 0;
+
           while (digitalRead(buttonPins[i]) == LOW) {
             delay(1);  // small delay to avoid CPU hogging
           }
+
+          buttonEn[0] = DISABLED;
+          buttonEn[1] = DISABLED;
+          buttonEn[2] = DISABLED;
+          buttonEn[3] = DISABLED;
+          buttonEn[4] = DISABLED;
+
+
+          delay(100);
+
           switch (i) {
             case 0:
               encryptNTx("[1N]");
@@ -53,8 +61,12 @@ static inline void hwbuttonFunc() {
               break;
             case 4:
               encryptNTx("[S?]");
+              //encryptNTx("[Z12345]");
               break;
           }
+
+          //buttonEn[i] = DISABLED;
+
           msgTxd = 1;
           ackTimerMillis = millis();
         }
