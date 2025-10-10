@@ -6,6 +6,8 @@ static uint8_t buttonStates[NUM_BUTTONS] = { 1, 1, 1, 1, 1 };
 static uint8_t lastButtonStates[NUM_BUTTONS] = { 1, 1, 1, 1, 1 };
 static unsigned long lastDebounceTimes[NUM_BUTTONS] = { 0, 0, 0, 0, 0 };
 static const unsigned long debounceDelay = 50UL;
+unsigned long ackTimerMillis = 0;
+uint8_t ackFailAtmp = 0;
 
 void encryptNTx(const char *msg) {
 
@@ -32,7 +34,6 @@ static inline void hwbuttonFunc() {
           lowPowerKick();
           delay(100);
           funcLedReset();
-
           while (digitalRead(buttonPins[i]) == LOW) {
             delay(1);  // small delay to avoid CPU hogging
           }
@@ -68,11 +69,61 @@ static inline void hwbuttonFunc() {
           //buttonEn[i] = DISABLED;
 
           msgTxd = 1;
+          ackFailAtmp = 0;
           ackTimerMillis = millis();
         }
+        // else if ((millis() <= 5000) && (buttonStates[3] == LOW) && (buttonStates[1] == LOW)) {
+        //   watchdogDisableFun();
+        //   savePeerSerial("42407197000000000000");
+        //   funcStaLWhite();
+        //   delay(300);
+        //   funcLedReset();
+        //   delay(300);
+        //   funcStaLWhite();
+        //   delay(300);
+        //   funcLedReset();
+        //   delay(2000);
+        //   encryptNTx("[A?]");
+        //   //encryptNTx("[A42407]");
+        //   delay(2000);
+        //   encryptNTx("[B19700]");
+        //   delay(2000);
+        //   encryptNTx("[C00123]");
+        //   delay(2000);
+        //   encryptNTx("[D45678]");
+        //   delay(2000);
+        //   encryptNTx("[Ex]");
+        // }
       }
     }
 
     lastButtonStates[i] = reading;
+  }
+}
+
+////////////////////////////////////////
+void ackReception() {
+  if (msgTxd) {
+    if (millis() - ackTimerMillis > 5000) {
+      if (ackFailAtmp >= 3) {
+        noNetworkTone();
+        funcStaLWhite();
+        delay(300);
+        funcLedReset();
+        delay(300);
+        funcStaLWhite();
+        delay(300);
+        funcLedReset();
+        buttonEn[4] = ENABLED;
+        msgTxd = 0;
+      } else {
+        funcStaLBlue();
+        delay(300);
+        funcLedReset();
+        encryptNTx("[S?]");
+        ackFailAtmp++;
+      }
+      ackTimerMillis = millis();
+    }
   }
 }

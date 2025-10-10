@@ -17,7 +17,6 @@
 #include "button.h"
 
 void setup() {
-
   hwPinInit();
   /////////////////////
   if (battCheck()) {
@@ -39,7 +38,7 @@ void setup() {
     wdtEnabled = true;
   }
   ///////////////////////
-  savePeerSerial("42407197000090220136");
+  savePeerSerial("42407197000043220136");
   delay(100);
 }
 
@@ -48,12 +47,13 @@ void loop() {
   lowPowerPoll();
   hwbuttonFunc();
   llcc68Func();
-  
+  funcLedReset();
+  ackReception();
+
   if (wdtEnabled) {
     watchdogReset();
   }
-  funcLedReset();
-  ackReception();
+  //getDeviceSerId();
 
   delay(5);
 }
