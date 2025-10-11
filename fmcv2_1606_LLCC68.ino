@@ -38,7 +38,7 @@ void setup() {
     wdtEnabled = true;
   }
   ///////////////////////
-  savePeerSerial("42407197000043220136");
+  savePeerSerial(MOT_CONT_ID);
   delay(100);
 }
 
