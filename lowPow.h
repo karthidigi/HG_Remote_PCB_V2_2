@@ -24,8 +24,8 @@ static inline void lowPowerKick() {
 }
 
 static inline void enterSleep() {
-  // 1. Put LoRa to sleep
-  llcc68_set_sleep(&llcc68_context, LLCC68_SLEEP_CFG_WARM_START);
+  // 1. Put SX1268 to sleep (warm start: retains calibration, faster wake)
+  SX1268_setSleep(SX1268_SLEEP_WARM_START);
   // buzBeep(100);
   // delay(200);
   // buzBeep(100);
@@ -56,9 +56,10 @@ static inline void lowPowerPoll() {
     enterSleep();
   }
   if (lp_wakeup_flag) {
-    digitalWrite(LLCC68_NSS, LOW);
-    delayMicroseconds(200);  // Minimum pulse as per Section 8.2.2
-    digitalWrite(LLCC68_NSS, HIGH);
+    // Wake SX1268 from sleep: assert NSS low briefly (SX126x datasheet §4.1.3)
+    digitalWrite(SX1268_NSS, LOW);
+    delayMicroseconds(200);
+    digitalWrite(SX1268_NSS, HIGH);
     lp_wakeup_flag = false;
   }
 }

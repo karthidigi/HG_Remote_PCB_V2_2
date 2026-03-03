@@ -1,3 +1,4 @@
+#pragma once
 /////////////////////////////////////////
 // Buttons
 #define M1_ON_BTN PIN_PB5
@@ -21,6 +22,12 @@
 #define LLCC68_RESET PIN_PA6
 #define LLCC68_BUSY PIN_PA5
 #define LLCC68_DIO1 PIN_PA7
+
+// SX1268 driver aliases — same physical pins as LLCC68 (pin-compatible modules)
+#define SX1268_NSS       LLCC68_NSS
+#define SX1268_BUSY      LLCC68_BUSY
+#define SX1268_RESET_PIN LLCC68_RESET
+#define SX1268_DIO1      LLCC68_DIO1
 
 ////////////////////////////////////////
 // Initialize hardware pins

@@ -1,3 +1,4 @@
+#pragma once
 #define ENABLED 1
 #define DISABLED 0
 ////////////////////////////////////////

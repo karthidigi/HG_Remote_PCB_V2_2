@@ -1,3 +1,4 @@
+#pragma once
 /////////////////////////////////////////////////////
 #define FIRMWARE_VERSION        "ATtiny1606"
 #define HARDWARE_VERSION        "1.1.1"
