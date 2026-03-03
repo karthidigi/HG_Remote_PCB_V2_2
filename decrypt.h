@@ -2,9 +2,11 @@
 
 char decBuf[MAX_MESSAGE_LEN + 1];
 
-static inline void decryptData(const uint8_t* rx_buf, uint8_t rx_len) {
+static inline bool decryptData(const uint8_t* rx_buf, uint8_t rx_len) {
 
-  if (rx_len == 0 || rx_len > 64) return;
+  encapData[0] = '\0';  // always clear — prevents stale command replay (Fix 4)
+
+  if (rx_len == 0 || rx_len > 64) return false;
 
   char hexBuf[65];
   uint8_t copyLen = (rx_len < sizeof(hexBuf) - 1) ? rx_len : sizeof(hexBuf) - 1;
@@ -14,7 +16,7 @@ static inline void decryptData(const uint8_t* rx_buf, uint8_t rx_len) {
   // ---- Parse idx + rnd ----
   if (strlen(hexBuf) < 6) {
     //DEBUG_PRINTN(F("RX too short for idx+rnd"));
-    return;
+    return false;
   }
 
   // Extract idx (2 hex chars → byte)
@@ -26,7 +28,7 @@ static inline void decryptData(const uint8_t* rx_buf, uint8_t rx_len) {
   // Remaining ciphertext (ASCII hex)
   const char* cipherHex = hexBuf + 6;
 
-  // ---- Build AES key from *this receiver’s* chip serial ----
+  // ---- Build AES key from *this receiver's* chip serial ----
   char selfSerial[21];
   getChipSerial(selfSerial, sizeof(selfSerial));
   //DEBUG_PRINTN(selfSerial);
@@ -56,16 +58,6 @@ static inline void decryptData(const uint8_t* rx_buf, uint8_t rx_len) {
   //    //DEBUG_PRINTN("]");
 
   //---- Decrypt ----
-  // char decBuf[MAX_MESSAGE_LEN + 1];
-  // if (decryptWithIdx(cipherHex, key, selfSerial, decBuf, sizeof(decBuf))) {
-  //    //DEBUG_PRINT("Decrypted: ");
-  //    //DEBUG_PRINTN(decBuf);
-  // } else {
-  //    //DEBUG_PRINTN("Decrypt failed");
-  // }
-
-
-
   if (decryptWithIdx(cipherHex, key, selfSerial, decBuf, sizeof(decBuf))) {
     char* start = strchr(decBuf, '[');
     char* end = strchr(decBuf, ']');
@@ -79,6 +71,7 @@ static inline void decryptData(const uint8_t* rx_buf, uint8_t rx_len) {
 
         //DEBUG_PRINT(F("Extracted: "));
         //DEBUG_PRINTN(encapData);
+        return true;
       } else {
         delay(10);
         //DEBUG_PRINTN(F("Content too long"));
@@ -92,10 +85,12 @@ static inline void decryptData(const uint8_t* rx_buf, uint8_t rx_len) {
     funcStaLWhite();
     delay(200);
   }
+  return false;
 }
 
 
 void decryptNFunc(const uint8_t* rx_buf, uint8_t rx_len) {
-  decryptData(rx_buf, rx_len);
-  rxFunc();
+  if (decryptData(rx_buf, rx_len)) {
+    rxFunc();   // only called on successful decrypt (Fix 4)
+  }
 }

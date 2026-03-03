@@ -19,7 +19,39 @@ void encryptNTx(const char *msg) {
 
 
 
+// Forward declaration — enterRemNodePairMode() is defined in pairRemoteNode.h
+// which is included after button.h in the .ino
+void enterRemNodePairMode();
+
+// ── Runtime re-pair: hold M1_OFF (idx 1) + STA (idx 4) for 5 seconds ─────────
+static unsigned long repairHoldStart = 0;
+static bool          repairHolding   = false;
+
+static inline void checkRepairCombo() {
+  bool m1off_held = (digitalRead(M1_OFF_BTN) == LOW);
+  bool sta_held   = (digitalRead(STA_BTN)    == LOW);
+
+  if (m1off_held && sta_held) {
+    if (!repairHolding) {
+      repairHoldStart = millis();
+      repairHolding   = true;
+    } else if (millis() - repairHoldStart >= 5000UL) {
+      repairHolding = false;
+      watchdogReset();
+      funcStaLRed();
+      delay(300);
+      funcLedReset();
+      clearPeerSerial();
+      enterRemNodePairMode();
+    }
+  } else {
+    repairHolding = false;
+  }
+}
+
 static inline void hwbuttonFunc() {
+  checkRepairCombo();
+
   for (uint8_t i = 0; i < NUM_BUTTONS; ++i) {
     uint8_t reading = digitalRead(buttonPins[i]);
     if (reading != lastButtonStates[i]) lastDebounceTimes[i] = millis();

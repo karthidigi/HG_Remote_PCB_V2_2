@@ -8,15 +8,21 @@ extern void *__brkval;
 
 bool lp_wkup_stbTx = 0;
 
-// ISR for button wakeup (called by attachInterrupt)
-static void wakeup_isr() {
-  lp_wakeup_flag = true;
+// ISR – native PORT interrupt (ATtiny1606 PC2 = STA_BTN)
+// PORTC_PORT_vect fires for any pin in PORT C.
+ISR(PORTC_PORT_vect) {
+  if (PORTC.INTFLAGS & PIN2_bm) {
+    PORTC.INTFLAGS = PIN2_bm;   // clear flag (write 1 to clear)
+    lp_wakeup_flag = true;
+  }
 }
 
 static inline void lowPowerInit() {
   lp_last_activity = millis();
-  //pinMode(STA_BTN, INPUT_PULLUP);
-  attachInterrupt(digitalPinToInterrupt(STA_BTN), wakeup_isr, FALLING);
+  // PC2 (STA_BTN) falling-edge interrupt — native PORT register
+  // PULLUPEN preserved: hwPinInit() set INPUT_PULLUP; we keep it here explicitly.
+  PORTC.DIRCLR   = PIN2_bm;                               // PC2 as input
+  PORTC.PIN2CTRL = PORT_ISC_FALLING_gc | PORT_PULLUPEN_bm; // falling-edge + pull-up
 }
 
 static inline void lowPowerKick() {

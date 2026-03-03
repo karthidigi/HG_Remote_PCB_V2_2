@@ -19,6 +19,26 @@
 
 void setup() {
   hwPinInit();
+
+  // Boot re-pair: hold STA for 3 s at power-on to force re-pair.
+  // Clears EEPROM peer serial; pairRemNodeTick() will auto-enter pair mode.
+  {
+    unsigned long holdStart = millis();
+    bool doRepair = false;
+    while (digitalRead(STA_BTN) == LOW) {
+      if (millis() - holdStart >= 3000UL) {
+        doRepair = true;
+        break;
+      }
+    }
+    if (doRepair) {
+      clearPeerSerial();
+      funcStaLRed();
+      delay(300);
+      funcLedReset();
+    }
+  }
+
   /////////////////////
   if (battCheck()) {
     funcStaLWhite();

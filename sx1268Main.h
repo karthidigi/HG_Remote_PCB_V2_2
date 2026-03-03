@@ -1,15 +1,16 @@
 // =============================================
-// sx1268Main.h – SX1262/SX1268 LoRa Radio Driver (Remote ATtiny1606)
+// sx1268Main.h – SX1262 LoRa Radio Driver (Remote ATtiny1606)
 // Replaces: llcc68Main.h
 // =============================================
-// Configuration: SF12, BW250, CR4/8, Preamble=16, Sync=0x1424 (private)
-// Frequency: 867 MHz,  TX Power: 22 dBm
-// Expected Range: ~8–12 km (line of sight, optimal conditions)
-// Time-on-Air: ~1380 ms per 32-byte packet   (SF10: ~345 ms)
-// NOTE: MUST MATCH STARTER SETTINGS!
+// SX1262 hardware notes:
+//   - TCXO on DIO3: configured before calibration
+//   - DIO2 as RF switch: NOT present on SX1262 — do NOT call setDio2AsRfSwitchCtrl()
+//   - SX126x family: SX1262 and SX1268 share the same SPI command interface
 //
-// SX126x family (SX1262/SX1268) supports all SF/BW combinations.
-// SF12: symbol time 16.4 ms → LDRO must be ON.
+// Pairing channel : SF7 /BW125/CR4-5/pre=8 /sync=0x1234/14dBm  (LDRO=0)
+// Operational channel: SF11/BW125/CR4-5/pre=12/sync=0x3444/22dBm (LDRO=1)
+// Frequency: 867 MHz
+// NOTE: Operational RF params MUST MATCH STARTER (AVRDB_LLCC_V2_2_GSM_But_LCD)
 
 #ifndef SX1268_MAIN_H
 #define SX1268_MAIN_H
@@ -58,10 +59,15 @@ static const unsigned long IDLE_DURATION_MS = 100UL;    // Fast return to RX mod
 static RadioState radio_state = STATE_IDLE;
 
 // ────────────────────────────────────────────────
-// ISR – Arduino attachInterrupt (ATtiny1606 PA7)
+// ISR – native PORT interrupt (ATtiny1606 PA7)
+// PORTA_PORT_vect fires for any pin in PORT A.
+// Check INTFLAGS to confirm PA7, then clear by writing 1 to the flag bit.
 // ────────────────────────────────────────────────
-static void dio1_isr() {
-    dio1_triggered = true;
+ISR(PORTA_PORT_vect) {
+    if (PORTA.INTFLAGS & PIN7_bm) {
+        PORTA.INTFLAGS = PIN7_bm;   // clear interrupt flag (write 1 to clear)
+        dio1_triggered = true;
+    }
 }
 
 // ────────────────────────────────────────────────
@@ -139,7 +145,7 @@ void sx1268Init() {
 
     SX1268_setRegulatorMode(SX1268_REGULATOR_DC_DC);
     SX1268_calibrateImage(SX1268_CAL_IMG_863, SX1268_CAL_IMG_870);
-    SX1268_setDio2AsRfSwitchCtrl(SX1268_DIO2_AS_RF_SWITCH);
+    // NOTE: SX1262 has NO internal DIO2 RF switch — do NOT call setDio2AsRfSwitchCtrl()
     SX1268_setPacketType(SX1268_LORA_MODEM);
 
     // Frequency: 867 MHz
@@ -148,17 +154,18 @@ void sx1268Init() {
     SX1268_setRfFrequency(rfFreq);
 
     SX1268_setPaConfig(0x04, 0x07, 0x00, 0x01);
-    SX1268_setTxParams(22, SX1268_PA_RAMP_200U);
+    SX1268_setTxParams(PAIR_TX_POWER, SX1268_PA_RAMP_200U);
 
-    // Init channel: SF12/BW250/CR4-8/LDRO=1
-    SX1268_setModulationParamsLoRa(12, SX1268_BW_250000, SX1268_CR_4_8, 1);
+    // Init on PAIR channel (SF7/BW125/CR4-5/LDRO=0/pre=8)
+    // pairRemNodeTick() calls switchToPairChannel() on first loop — this just
+    // ensures the radio starts in a valid, known state.
+    SX1268_setModulationParamsLoRa(PAIR_SF, PAIR_BW, PAIR_CR, 0); // LDRO=0
 
-    SX1268_setPacketParamsLoRa(16, SX1268_HEADER_EXPLICIT, 32,
+    SX1268_setPacketParamsLoRa(PAIR_PREAMBLE, SX1268_HEADER_EXPLICIT, 32,
                                SX1268_CRC_ON, SX1268_IQ_STANDARD);
     SX1268_fixInvertedIq(SX1268_IQ_STANDARD);
 
-    // Sync word: private LoRa (0x12) → {0x14, 0x24}
-    uint8_t sw[2] = {0x14, 0x24};
+    uint8_t sw[2] = { PAIR_SYNC_MSB, PAIR_SYNC_LSB };
     SX1268_writeRegister(SX1268_REG_LORA_SYNC_WORD_MSB, sw, 2);
 
     SX1268_setBufferBaseAddress(0x00, 0x80);
@@ -170,9 +177,9 @@ void sx1268Init() {
     SX1268_setDioIrqParams(irq_mask, irq_mask,
                            SX1268_IRQ_NONE,  SX1268_IRQ_NONE);
 
-    // DIO1 rising-edge interrupt (ATtiny1606)
-    pinMode(SX1268_DIO1, INPUT);
-    attachInterrupt(digitalPinToInterrupt(SX1268_DIO1), dio1_isr, RISING);
+    // DIO1 rising-edge interrupt — native PORT register (ATtiny1606 PA7)
+    PORTA.DIRCLR   = PIN7_bm;             // PA7 as input
+    PORTA.PIN7CTRL = PORT_ISC_RISING_gc;  // rising-edge sense; enables pin interrupt
 
     radio_state      = STATE_IDLE;
     state_start_time = millis();

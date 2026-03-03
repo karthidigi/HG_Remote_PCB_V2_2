@@ -28,3 +28,8 @@ static inline void readPeerSerial(char *buffer, size_t bufferSize) {
   }
   buffer[PEER_SERIAL_LEN - 1] = '\0';
 }
+
+// Clear peer serial — forces re-pair on next boot/tick
+static inline void clearPeerSerial() {
+  EEPROM.update(EEPROM_PEER_SERIAL_ADDR, '\0');
+}

@@ -239,7 +239,7 @@
 #else
     #define SX1268_SPI_FREQUENCY                16000000    // Maximum LoRa SPI frequency
 #endif
-#define SX1268_BUSY_TIMEOUT                     5000        // Default timeout for checking busy pin
+#define SX1268_BUSY_TIMEOUT                     3000        // Must be < ATtiny1606 WDT period (4096 ms) — Fix 6
 
 void SX1268_setSPI(SPIClass &SpiObject, uint32_t frequency);
 void SX1268_setPins(int8_t nss, int8_t busy);
