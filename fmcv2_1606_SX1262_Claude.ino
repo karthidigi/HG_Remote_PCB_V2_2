@@ -21,8 +21,10 @@ void setup() {
   hwPinInit();
 
   // Boot re-pair: hold STA for 3 s at power-on to force re-pair.
-  // Clears EEPROM peer serial; pairRemNodeTick() will auto-enter pair mode.
-  {
+  // hwPinInit() sets INPUT_PULLUP; internal pull-up settles in microseconds
+  // (no external capacitor), so no settling delay needed.
+  // Outer guard: skip entirely if pin is HIGH (normal power-on, button not held).
+  if (digitalRead(STA_BTN) == LOW) {
     unsigned long holdStart = millis();
     bool doRepair = false;
     while (digitalRead(STA_BTN) == LOW) {

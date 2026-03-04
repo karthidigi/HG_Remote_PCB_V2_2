@@ -23,10 +23,16 @@ typedef enum {
     PAIR_REMNODE_WAIT_TX_DONE,  // got 0x0E, 0x0F TX pending; wait 1 s then switch channel
 } PairRemNodeState_t;
 
-static PairRemNodeState_t pairRemNodeState      = PAIR_REMNODE_IDLE;
-static unsigned long      pairRemNodeBeaconMs   = 0;    // timestamp of last beacon
-static unsigned long      pairRemNodeDoneTxMs   = 0;    // timestamp when 0x0F was sent
+static PairRemNodeState_t pairRemNodeState       = PAIR_REMNODE_IDLE;
+static unsigned long      pairRemNodeBeaconMs    = 0;    // timestamp of last beacon
+static unsigned long      pairRemNodeDoneTxMs    = 0;    // timestamp when 0x0F was sent
 static bool               pairRemNodeDonePending = false;
+// Cached peer-serial state — updated once on boot and after every pairing.
+// Avoids reading EEPROM (20 bytes) on every loop() iteration.
+// -1 = unchecked, 0 = no peer stored, 1 = peer stored
+static int8_t             peerSerialCached       = -1;
+// One-shot: switch radio from PAIR→OPER channel on first IDLE tick after boot.
+static bool               pairBootInitDone       = false;
 
 // ── Pairing-active LED blink ───────────────────────────────────────────────────
 static unsigned long pairLedBlinkMs = 0;
@@ -64,8 +70,9 @@ void pairRemNodeHandleAck(const uint8_t* buf, uint8_t len) {
     memcpy(starterId, &buf[1], 20);
     starterId[20] = '\0';
 
-    // Save starter ID as peer serial in EEPROM
+    // Save starter ID as peer serial in EEPROM; update cache
     savePeerSerial(starterId);
+    peerSerialCached = 1;   // cache: peer now stored
 
     // Store RF params to apply after sending 0x0F
     pairRemNodeAckSf     = buf[21];
@@ -103,11 +110,34 @@ void pairRemNodeTick() {
     switch (pairRemNodeState) {
 
         case PAIR_REMNODE_IDLE: {
-            // Auto-enter pairing if EEPROM peer serial is empty
-            char peerBuf[21];
-            readPeerSerial(peerBuf, sizeof(peerBuf));
-            if (peerBuf[0] == '\0' || peerBuf[0] == (char)0xFF) {
+            // Read EEPROM only once (cache = -1 on first call after boot or after
+            // clearPeerSerial()). After that the cached value is reused so we don't
+            // burn 20 EEPROM reads every 5 ms loop iteration.
+            if (peerSerialCached < 0) {
+                char peerBuf[21];
+                readPeerSerial(peerBuf, sizeof(peerBuf));
+                peerSerialCached = (peerBuf[0] != '\0' && peerBuf[0] != (char)0xFF) ? 1 : 0;
+            }
+
+            if (peerSerialCached == 0) {
+                // No peer stored — enter pairing mode; reset cache for next pairing
+                peerSerialCached = -1;
                 enterRemNodePairMode();
+            } else {
+                // Already paired. sx1268Init() always starts on PAIR channel.
+                // Switch to operational channel once so communication works on
+                // cold power-on without needing a re-pair.
+                if (!pairBootInitDone) {
+                    pairBootInitDone = true;
+                    switchToOperationalChannel();
+                    // Enable buttons (motors are off at boot — ON buttons active)
+                    buttonEn[0] = ENABLED;   // M1_ON
+                    buttonEn[1] = DISABLED;  // M1_OFF
+                    buttonEn[2] = ENABLED;   // M2_ON
+                    buttonEn[3] = DISABLED;  // M2_OFF
+                    buttonEn[4] = ENABLED;   // STA
+                }
+                // else: already on operational channel — nothing to do
             }
             break;
         }

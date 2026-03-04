@@ -45,15 +45,6 @@ static inline bool hexToBytes(const char *hex, uint8_t *out, size_t *outLen) {
 }
 
 // ------------------------------------------------------
-// Generate nonce dynamically (saves flash vs static table)
-// ------------------------------------------------------
-static inline void getNonce(uint8_t *nonce, uint8_t idx) {
-  for (uint8_t i = 0; i < BLOCK_SIZE; i++) {
-    nonce[i] = (uint8_t)(idx * 31 + i * 17 + 0x55);
-  }
-}
-
-// ------------------------------------------------------
 // Read chip serial into hex string (20 chars + null)
 // ------------------------------------------------------
 static inline void getChipSerial(char *out, size_t outLen) {

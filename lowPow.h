@@ -3,8 +3,6 @@
 
 static volatile bool lp_wakeup_flag = false;
 static unsigned long lp_last_activity = 0;
-extern unsigned int __heap_start;
-extern void *__brkval;
 
 bool lp_wkup_stbTx = 0;
 
