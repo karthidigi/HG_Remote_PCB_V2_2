@@ -48,7 +48,7 @@ static inline void enterSleep() {
 
   // 4. Re-enable watchdog after wake
   watchdogInit();
-  buttonEn[4] = ENABLED;
+  buttonEn[2] = ENABLED;   // STA button (index 2 in 3-button layout)
   lp_wakeup_flag = true;
   lp_wkup_stbTx = true;
   lp_last_activity = millis();

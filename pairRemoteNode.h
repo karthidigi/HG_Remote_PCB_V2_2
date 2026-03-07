@@ -34,9 +34,10 @@ static int8_t             peerSerialCached       = -1;
 // One-shot: switch radio from PAIR→OPER channel on first IDLE tick after boot.
 static bool               pairBootInitDone       = false;
 
-// ── Pairing-active LED blink ───────────────────────────────────────────────────
-static unsigned long pairLedBlinkMs = 0;
-static bool          pairLedToggle  = false;
+// ── Pairing-active LED blink (4-phase: blue ON → OFF → red ON → OFF) ──────────
+// Phase 0 = blue ON (200 ms), 1 = off (300 ms), 2 = red ON (200 ms), 3 = off (300 ms)
+static unsigned long pairLedPhaseMs = 0;
+static uint8_t       pairLedPhase   = 0;
 
 // Operational RF params received in 0x0E (used to apply correct channel)
 static uint8_t pairRemNodeAckSf     = OPER_SF;
@@ -96,14 +97,23 @@ void pairRemNodeHandleAck(const uint8_t* buf, uint8_t len) {
 void pairRemNodeTick() {
     unsigned long now = millis();
 
-    // ── Pairing-active LED: blue / red alternating every 300 ms ──────────────
+    // ── Pairing-active LED: 4-phase blink (self-managed, no loop funcLedReset needed)
+    //    Phase 0: blue ON  200 ms
+    //    Phase 1: all OFF  300 ms
+    //    Phase 2: red  ON  200 ms
+    //    Phase 3: all OFF  300 ms
     if (pairRemNodeState != PAIR_REMNODE_IDLE) {
         lowPowerKick();   // prevent sleep entry while pairing is in progress
-        if (now - pairLedBlinkMs >= 300UL) {
-            pairLedBlinkMs = now;
-            pairLedToggle  = !pairLedToggle;
-            if (pairLedToggle) { funcStaLBlue(); }
-            else               { funcStaLRed();  }
+        unsigned long phaseDur = (pairLedPhase & 1) ? 300UL : 200UL;
+        if (now - pairLedPhaseMs >= phaseDur) {
+            pairLedPhaseMs = now;
+            pairLedPhase   = (pairLedPhase + 1) & 3;
+            switch (pairLedPhase) {
+                case 0: funcStaLBlue(); break;
+                case 1: funcLedReset(); break;
+                case 2: funcStaLRed();  break;
+                default: funcLedReset(); break;   // phase 3
+            }
         }
     }
 
@@ -132,10 +142,8 @@ void pairRemNodeTick() {
                     switchToOperationalChannel();
                     // Enable buttons (motors are off at boot — ON buttons active)
                     buttonEn[0] = ENABLED;   // M1_ON
-                    buttonEn[1] = DISABLED;  // M1_OFF
-                    buttonEn[2] = ENABLED;   // M2_ON
-                    buttonEn[3] = DISABLED;  // M2_OFF
-                    buttonEn[4] = ENABLED;   // STA
+                    buttonEn[1] = DISABLED;  // M1_OFF (motor off — can't turn off again)
+                    buttonEn[2] = ENABLED;   // STA
                 }
                 // else: already on operational channel — nothing to do
             }
@@ -167,30 +175,24 @@ void pairRemNodeTick() {
 
             // Step 2: wait ~1 s for TX to complete, then switch to operational channel
             if (now - pairRemNodeDoneTxMs >= 1000UL) {
-                watchdogReset();  // ~800 ms of blocking beeps + LED ahead
+                watchdogReset();  // ~1.5 s of blocking buzzer + LED ahead
 
-                // 3x beep = paired OK
-                buzBeep(BUZZ_NOR);
-                delay(100);
-                buzBeep(BUZZ_NOR);
-                delay(100);
-                buzBeep(BUZZ_NOR);
+                // 1-second beep = paired OK
+                buzBeep(1000);
                 funcStaLWhite();
                 delay(500);
                 funcLedReset();
 
                 switchToOperationalChannel();   // SF11/BW125/sync=0x3444
 
-                // FIX: Enable motor control buttons immediately after pairing.
+                // Enable motor control buttons immediately after pairing.
                 // states.h boots with all action buttons DISABLED; they would
                 // normally only be enabled after receiving an ACK from the Starter.
                 // Enable them now so the user can send commands right away.
-                // Default state: both motors OFF (ON buttons enabled, OFF buttons disabled).
+                // Default state: motor OFF (ON button enabled, OFF button disabled).
                 buttonEn[0] = ENABLED;   // M1_ON
                 buttonEn[1] = DISABLED;  // M1_OFF  (motor off — can't turn off again)
-                buttonEn[2] = ENABLED;   // M2_ON
-                buttonEn[3] = DISABLED;  // M2_OFF  (motor off — can't turn off again)
-                buttonEn[4] = ENABLED;   // STA
+                buttonEn[2] = ENABLED;   // STA
 
                 pairRemNodeState = PAIR_REMNODE_IDLE;
             }

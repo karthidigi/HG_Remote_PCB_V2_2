@@ -20,24 +20,17 @@
 void setup() {
   hwPinInit();
 
-  // Boot re-pair: hold STA for 3 s at power-on to force re-pair.
-  // hwPinInit() sets INPUT_PULLUP; internal pull-up settles in microseconds
-  // (no external capacitor), so no settling delay needed.
-  // Outer guard: skip entirely if pin is HIGH (normal power-on, button not held).
-  if (digitalRead(STA_BTN) == LOW) {
+  // Boot re-pair: hold M1_OFF + STA simultaneously for >= 5 s at power-on.
+  // Both pins are INPUT_PULLUP (settled immediately after hwPinInit()).
+  // enterRemNodePairMode() is called AFTER sx1268Init() so the radio is ready.
+  bool bootRepair = false;
+  if (digitalRead(M1_OFF_BTN) == LOW && digitalRead(STA_BTN) == LOW) {
     unsigned long holdStart = millis();
-    bool doRepair = false;
-    while (digitalRead(STA_BTN) == LOW) {
-      if (millis() - holdStart >= 3000UL) {
-        doRepair = true;
+    while (digitalRead(M1_OFF_BTN) == LOW && digitalRead(STA_BTN) == LOW) {
+      if (millis() - holdStart >= 5000UL) {
+        bootRepair = true;
         break;
       }
-    }
-    if (doRepair) {
-      clearPeerSerial();
-      funcStaLRed();
-      delay(300);
-      funcLedReset();
     }
   }
 
@@ -56,6 +49,13 @@ void setup() {
   aesInit("[horizon]");
   sx1268Init();
   lowPowerInit();
+
+  // Trigger re-pair now that radio is initialised
+  if (bootRepair) {
+    clearPeerSerial();
+    enterRemNodePairMode();   // switches to PAIR channel, starts beaconing
+  }
+
   if (!wdtEnabled) {
     watchdogInit();
     wdtEnabled = true;
@@ -68,9 +68,11 @@ void loop() {
 
   lowPowerPoll();
   hwbuttonFunc();
+  ackReception();      // STA retry / timeout handler (defined in button.h)
   sx1268Func();
   pairRemNodeTick();   // handles pairing state machine; auto-pairs if no peer stored
-  funcLedReset();
+  // funcLedReset() removed from here — every LED action already resets at its own end.
+  // Removing it allows pairRemNodeTick() 4-phase blink to stay visible between loop ticks.
 
   if (wdtEnabled) {
     watchdogReset();

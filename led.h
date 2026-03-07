@@ -1,105 +1,63 @@
-/////////////////////////////////////
-// LED_ANODE = PIN_PC0 → PORTC bit 0 (PIN0_bm)
-// LED_J1    = PIN_PC1 → PORTC bit 1 (PIN1_bm)
-// LED_J2    = PIN_PB4 → PORTB bit 4 (PIN4_bm)
-// LED_J3    = PIN_PB3 → PORTB bit 3 (PIN3_bm)
+// led.h — v2-2 board LED driver
+// Topology: cathode-sink — all LEDs are driven as cathode sinks.
+// Drive pin OUTPUT LOW = LED on, DIRCLR (INPUT high-Z) = LED off.
+// PB3 = blue cathode, PC1 = red cathode, PB4 = green cathode.
 
 void funcLedReset() {
-  PORTC.DIRCLR = PIN0_bm | PIN1_bm;  // ANODE, J1 → input (high-Z)
-  PORTB.DIRCLR = PIN4_bm | PIN3_bm;  // J2, J3   → input (high-Z)
-}
-
-void funcStaLWhite() {
-  PORTC.DIRCLR = PIN0_bm | PIN1_bm;
-  PORTB.DIRCLR = PIN4_bm | PIN3_bm;
-  PORTC.OUTSET = PIN0_bm;            // ANODE HIGH
-  PORTC.OUTCLR = PIN1_bm;            // J1 LOW
-  PORTB.OUTCLR = PIN4_bm | PIN3_bm;  // J2, J3 LOW
-  PORTC.DIRSET = PIN0_bm | PIN1_bm;
-  PORTB.DIRSET = PIN4_bm | PIN3_bm;
+  PORTC.DIRCLR = PIN1_bm;             // red (PC1) → high-Z = off
+  PORTB.DIRCLR = PIN3_bm | PIN4_bm;  // blue (PB3) + green (PB4) → high-Z = off
 }
 
 void funcStaLBlue() {
-  PORTC.DIRCLR = PIN0_bm | PIN1_bm;
-  PORTB.DIRCLR = PIN4_bm | PIN3_bm;
-  PORTC.OUTSET = PIN0_bm;  // ANODE HIGH
-  PORTB.OUTCLR = PIN3_bm;  // J3 LOW
-  PORTC.DIRSET = PIN0_bm;
+  funcLedReset();
+  PORTB.OUTCLR = PIN3_bm;   // PB3 LOW → blue LED on
   PORTB.DIRSET = PIN3_bm;
 }
 
 void funcStaLRed() {
-  PORTC.DIRCLR = PIN0_bm | PIN1_bm;
-  PORTB.DIRCLR = PIN4_bm | PIN3_bm;
-  PORTB.OUTSET = PIN3_bm;            // J3 HIGH
-  PORTC.OUTSET = PIN0_bm;            // ANODE HIGH
-  PORTC.OUTCLR = PIN1_bm;            // J1 LOW
-  PORTC.DIRSET = PIN0_bm | PIN1_bm;
-  PORTB.DIRSET = PIN3_bm;
+  funcLedReset();
+  PORTC.OUTCLR = PIN1_bm;   // PC1 LOW → red LED on
+  PORTC.DIRSET = PIN1_bm;
 }
 
-void funcM1LRed() {
-  PORTC.DIRCLR = PIN0_bm | PIN1_bm;
-  PORTB.DIRCLR = PIN4_bm | PIN3_bm;
-  PORTC.OUTSET = PIN0_bm;  // ANODE HIGH
-  PORTC.OUTCLR = PIN1_bm;  // J1 LOW
-  PORTC.DIRSET = PIN0_bm | PIN1_bm;
+void funcStaLWhite() {
+  funcLedReset();
+  PORTC.OUTCLR = PIN1_bm;             // red on (PC1)
+  PORTB.OUTCLR = PIN3_bm | PIN4_bm;  // blue (PB3) + green (PB4) on → all = white
+  PORTC.DIRSET = PIN1_bm;
+  PORTB.DIRSET = PIN3_bm | PIN4_bm;
 }
 
 void funcM1LGreen() {
-  PORTC.DIRCLR = PIN0_bm | PIN1_bm;
-  PORTB.DIRCLR = PIN4_bm | PIN3_bm;
-  PORTC.OUTSET = PIN0_bm;  // ANODE HIGH
-  PORTB.OUTCLR = PIN4_bm;  // J2 LOW
-  PORTC.DIRSET = PIN0_bm;
+  funcLedReset();
+  PORTB.OUTCLR = PIN4_bm;   // PB4 LOW → green LED on
   PORTB.DIRSET = PIN4_bm;
+}
+
+void funcM1LRed() {
+  funcStaLRed();             // same cathode as status red
 }
 
 void funcM1Yellow() {
-  PORTC.DIRCLR = PIN0_bm | PIN1_bm;
-  PORTB.DIRCLR = PIN4_bm | PIN3_bm;
-  PORTC.OUTSET = PIN0_bm;  // ANODE HIGH
-  PORTC.OUTCLR = PIN1_bm;  // J1 LOW
-  PORTB.OUTCLR = PIN4_bm;  // J2 LOW
-  PORTC.DIRSET = PIN0_bm | PIN1_bm;
+  funcLedReset();
+  PORTC.OUTCLR = PIN1_bm;   // red cathode on
+  PORTB.OUTCLR = PIN4_bm;   // green cathode on → together = yellow
+  PORTC.DIRSET = PIN1_bm;
   PORTB.DIRSET = PIN4_bm;
-}
-
-void funcM2LGreen() {
-  PORTC.DIRCLR = PIN0_bm | PIN1_bm;
-  PORTB.DIRCLR = PIN4_bm | PIN3_bm;
-  PORTB.OUTSET = PIN4_bm;  // J2 HIGH
-  PORTB.DIRSET = PIN4_bm;
-}
-
-void funcM2LRed() {
-  PORTC.DIRCLR = PIN0_bm | PIN1_bm;
-  PORTB.DIRCLR = PIN4_bm | PIN3_bm;
-  PORTB.OUTSET = PIN3_bm;  // J3 HIGH
-  PORTB.DIRSET = PIN3_bm;
-}
-
-void funcM2Yellow() {
-  PORTC.DIRCLR = PIN0_bm | PIN1_bm;
-  PORTB.DIRCLR = PIN4_bm | PIN3_bm;
-  PORTB.OUTSET = PIN4_bm | PIN3_bm;  // J2, J3 HIGH
-  PORTB.DIRSET = PIN4_bm | PIN3_bm;
 }
 
 void funcLedTest() {
   funcStaLWhite();  delay(50);
   funcStaLBlue();   delay(50);
+  funcStaLRed();    delay(50);
   funcM1LRed();     delay(50);
   funcM1LGreen();   delay(50);
   funcM1Yellow();   delay(50);
-  funcM2LRed();     delay(50);
-  funcM2LGreen();   delay(50);
-  funcM2Yellow();   delay(50);
   funcLedReset();
 }
 
 void lowBattAlert() {
-  funcM1LRed();  delay(500);
-  funcLedReset(); delay(500);
-  funcM1LRed();
+  // 2 × red blink (200 ms on, 200 ms off)
+  funcStaLRed(); delay(200); funcLedReset(); delay(200);
+  funcStaLRed(); delay(200); funcLedReset();
 }

@@ -4,60 +4,34 @@ char encapData[MAX_MESSAGE_LEN];
 void rxFunc() {
   msgTxd = 0;
   if (strcmp(encapData, "1N") == 0) {
-    //DEBUG_PRINTN(F("M11 received"));
-    buttonEn[0] = DISABLED;
-    buttonEn[1] = ENABLED;
-    buttonEn[2] = DISABLED;
-    buttonEn[3] = DISABLED;
-    buttonEn[4] = ENABLED;
+    // Motor 1 ON confirmed
+    buttonEn[0] = DISABLED;  // M1_ON  (motor running — can't turn on again)
+    buttonEn[1] = ENABLED;   // M1_OFF
+    buttonEn[2] = ENABLED;   // STA
     funcM1LGreen();
     MotorOnTone();
     funcLedReset();
 
   } else if (strcmp(encapData, "1F") == 0) {
-    //DEBUG_PRINTN(F("M10 received"));
-    buttonEn[0] = ENABLED;
-    buttonEn[1] = DISABLED;
-    buttonEn[2] = ENABLED;
-    buttonEn[3] = DISABLED;
-    buttonEn[4] = ENABLED;
+    // Motor 1 OFF confirmed
+    buttonEn[0] = ENABLED;   // M1_ON
+    buttonEn[1] = DISABLED;  // M1_OFF (motor stopped — can't turn off again)
+    buttonEn[2] = ENABLED;   // STA
     funcM1LRed();
     buzBeep(BUZZ_OFF);
     delay(1000);
     funcLedReset();
-  } else if (strcmp(encapData, "2N") == 0) {
-    //DEBUG_PRINTN(F("M21 received"));
-    buttonEn[0] = DISABLED;
-    buttonEn[1] = DISABLED;
-    buttonEn[2] = ENABLED;
-    buttonEn[3] = DISABLED;
-    buttonEn[4] = ENABLED;
-    funcM2LGreen();
-    buzBeep(BUZZ_OFF);
-    delay(1000);
-    funcLedReset();
-  } else if (strcmp(encapData, "2F") == 0) {
-    //DEBUG_PRINTN(F("M20 received"));
-    buttonEn[0] = ENABLED;   
-    buttonEn[1] = DISABLED;  
-    buttonEn[2] = ENABLED;   
-    buttonEn[3] = DISABLED;
-    buttonEn[4] = ENABLED;
-    funcM2LRed();
-    buzBeep(BUZZ_OFF);
-    delay(1000);
-    funcLedReset();
+
   } else if (strcmp(encapData, "A0") == 0) {
-    //DEBUG_PRINTN(F("M20 received"));
-    buttonEn[0] = ENABLED;   
-    buttonEn[1] = DISABLED;  
-    buttonEn[2] = ENABLED;   
-    buttonEn[3] = DISABLED;
-    buttonEn[4] = ENABLED;
-    funcM2LRed();
+    // Auto-stop / alarm: treat as motor OFF state
+    buttonEn[0] = ENABLED;   // M1_ON
+    buttonEn[1] = DISABLED;  // M1_OFF
+    buttonEn[2] = ENABLED;   // STA
+    funcM1LRed();
     buzBeep(BUZZ_OFF);
     delay(1000);
     funcLedReset();
+
   } else {
     delay(1000);
     funcM1Yellow();
