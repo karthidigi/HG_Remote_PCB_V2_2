@@ -47,6 +47,10 @@ void hwPinInit() {
   PORTB.DIRCLR   = PIN1_bm;
   PORTB.PIN1CTRL = 0;        // no pullup, no interrupt
 
+  // PC0 (unused on v2-2): open drain — plain INPUT, no pullup, no interrupt
+  PORTC.DIRCLR   = PIN0_bm;
+  PORTC.PIN0CTRL = 0;
+
   // PB2 (was M2_ON_BTN, not fitted): leave as reset default
 
   pinMode(STA_BTN, INPUT_PULLUP);

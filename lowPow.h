@@ -30,11 +30,6 @@ static inline void lowPowerKick() {
 static inline void enterSleep() {
   // 1. Put SX1268 to sleep (warm start: retains calibration, faster wake)
   SX1268_setSleep(SX1268_SLEEP_WARM_START);
-  // buzBeep(100);
-  // delay(200);
-  // buzBeep(100);
-  // delay(200);
-  // buzBeep(100);
 
   // 2. Disable watchdog before sleep
   watchdogDisableFun();
@@ -43,24 +38,45 @@ static inline void enterSleep() {
   set_sleep_mode(SLEEP_MODE_PWR_DOWN);
   sleep_enable();
   sei();            // enable interrupts before sleeping
-  sleep_cpu();      // go to sleep
-  sleep_disable();  // resumes here after wake
+  sleep_cpu();      // go to sleep — resumes at next line after ISR fires
+  sleep_disable();
 
-  // 4. Re-enable watchdog after wake
+  // 4. Re-enable watchdog first so it covers the reinit below
   watchdogInit();
-  buttonEn[2] = ENABLED;   // STA button (index 2 in 3-button layout)
-  lp_wakeup_flag = true;
-  lp_wkup_stbTx = true;
+
+  // 5. Full radio reinit after deep sleep.
+  // The SX1262 warm-start preserves registers, but the TCXO oscillator
+  // requires re-calibration after extended power-down — especially when
+  // ambient temperature has changed during sleep.  Without re-calibration
+  // the RF carrier frequency drifts; at close range (strong RSSI) reception
+  // still works, but at normal LoRa distance the frequency offset pushes the
+  // signal off the receiver's passband and packets are lost.
+  // A full sx1268Init() + switchToOperationalChannel() guarantees the radio
+  // starts from a known, correctly calibrated state on the correct channel
+  // with the correct sync word, SF12, and 22 dBm TX power.
+  sx1268Init();
+  switchToOperationalChannel();
+
+  // 6. Re-enable ALL buttons so the user can send ON, OFF, or STA immediately
+  // after waking without needing to press STA first to "unlock" the remote.
+  buttonEn[0] = ENABLED;   // M1_ON
+  buttonEn[1] = ENABLED;   // M1_OFF
+  buttonEn[2] = ENABLED;   // STA
+
+  // sx1268Init() already performed a hardware reset — no NSS toggle needed.
+  lp_wakeup_flag = false;
+  lp_wkup_stbTx  = false;
   lp_last_activity = millis();
-  //DEBUG_PRINTN(F("System woke up from low-power mode"));
 }
 
 static inline void lowPowerPoll() {
   if ((millis() - lp_last_activity) >= LP_TIMEOUT_MS) {
     enterSleep();
   }
+  // lp_wakeup_flag is cleared inside enterSleep() after the full reinit.
+  // This block is kept as a safety net for any future non-sleep wake paths.
   if (lp_wakeup_flag) {
-    // Wake SX1268 from sleep: assert NSS low briefly (SX126x datasheet §4.1.3)
+    // Fallback: wake SX1268 via NSS toggle (SX126x datasheet §4.1.3)
     digitalWrite(SX1268_NSS, LOW);
     delayMicroseconds(200);
     digitalWrite(SX1268_NSS, HIGH);

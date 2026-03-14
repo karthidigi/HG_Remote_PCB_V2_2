@@ -8,6 +8,7 @@ static unsigned long lastDebounceTimes[NUM_BUTTONS] = { 0, 0, 0 };
 static const unsigned long debounceDelay = 50UL;
 unsigned long ackTimerMillis = 0;
 uint8_t ackFailAtmp = 0;
+static char lastTxCmd[8] = {0};  // original command to retry on ACK failure
 
 void encryptNTx(const char *msg) {
   encryptData(msg);
@@ -32,8 +33,9 @@ static inline void hwbuttonFunc() {
         if ((buttonStates[i] == LOW) && (buttonEn[i] == ENABLED)) {
           watchdogReset();
           lowPowerKick();
+          // unsigned long pressStart = millis();  // reserved for long-press detection (future use)
           funcStaLBlue();       // blue LED ON
-          buzBeep(100);         // buzzer ON — both LED + buzzer hold for 100 ms
+          buzBeep(50);          // buzzer + LED feedback — 50 ms
           funcLedReset();       // blue LED OFF (buzzer already off after buzBeep)
           while (digitalRead(buttonPins[i]) == LOW) {
             delay(1);  // small delay to avoid CPU hogging
@@ -46,14 +48,34 @@ static inline void hwbuttonFunc() {
 
           switch (i) {
             case 0:
+              strncpy(lastTxCmd, "[1N]", sizeof(lastTxCmd));
               encryptNTx("[1N]");
               break;
             case 1:
+              strncpy(lastTxCmd, "[1F]", sizeof(lastTxCmd));
               encryptNTx("[1F]");
               break;
-            case 2:
+            case 2: {
+              // Long-press light-switch toggle (≥300 ms → L1/L0) is reserved for
+              // future use — commented out until the feature is fully implemented.
+              // unsigned long heldMs = millis() - pressStart;
+              // if (heldMs >= 300UL) {
+              //   if (liRelRemState) {
+              //     strncpy(lastTxCmd, "[L0]", sizeof(lastTxCmd));
+              //     encryptNTx("[L0]");
+              //   } else {
+              //     strncpy(lastTxCmd, "[L1]", sizeof(lastTxCmd));
+              //     encryptNTx("[L1]");
+              //   }
+              // } else {
+
+              // Short press — status query (always, while light-switch is disabled)
+              strncpy(lastTxCmd, "[S?]", sizeof(lastTxCmd));
               encryptNTx("[S?]");
+
+              // } // end long-press else
               break;
+            }
           }
 
           msgTxd = 1;
@@ -70,7 +92,9 @@ static inline void hwbuttonFunc() {
 ////////////////////////////////////////
 void ackReception() {
   if (msgTxd) {
-    if (millis() - ackTimerMillis > 5000) {
+    // SF11 full ACK cycle: [S?] ToA ~1.1s + starter delay 1.5s + ACK ToA ~1.1s = ~3.7s total.
+    // 6000ms gives 2.3s margin — enough for the full ACK to arrive before declaring a retry.
+    if (millis() - ackTimerMillis > 6000) {
       if (ackFailAtmp >= 3) {
         noNetworkTone();
         funcStaLWhite();
@@ -80,13 +104,30 @@ void ackReception() {
         funcStaLWhite();
         delay(300);
         funcLedReset();
-        buttonEn[2] = ENABLED;   // re-enable STA only (index 2 in 3-button layout)
+        // Radio re-init: after repeated TX failures the radio may be stuck in a
+        // bad state (TX latch, BUSY stuck, IRQ flags not cleared).
+        // Full reinit + return to operational channel ensures clean RX on next press.
+        sx1268Init();
+        switchToOperationalChannel();
+        // Re-enable ALL buttons — not just STA.
+        // Previous behaviour (STA only) confused users: after returning to range
+        // ON/OFF presses did nothing because those buttons were still locked out.
+        buttonEn[0] = ENABLED;   // M1_ON
+        buttonEn[1] = ENABLED;   // M1_OFF
+        buttonEn[2] = ENABLED;   // STA
         msgTxd = 0;
+        // Reset the low-power sleep timer.  The retry loop takes ~32 s, which
+        // is just over LP_TIMEOUT_MS, so without this the device enters sleep
+        // on the very next lowPowerPoll() call before the user can press anything.
+        lowPowerKick();
       } else {
         funcStaLBlue();
         delay(300);
         funcLedReset();
-        encryptNTx("[S?]");
+        // Retry with the original command — not always [S?].
+        // If [1N] or [1F] was lost in transit, the retry must repeat
+        // the command so the motor actually gets commanded on success.
+        encryptNTx(lastTxCmd[0] ? lastTxCmd : "[S?]");
         ackFailAtmp++;
       }
       ackTimerMillis = millis();
